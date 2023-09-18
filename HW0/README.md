@@ -16,6 +16,6 @@
        ```
      * `$ git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git`
      * `$ ./configure --prefix=/opt/riscv --with-arch=rv32ima_zicsr_zifencei --with-abi=ilp32`
-     * `$ sudo make -j16` (不知為啥有許多error & warning of refined)
+     * `$ sudo make`
      * `$ export PATH=$PATH:/opt/riscv/bin`
      * `$ export RISCV=/opt/riscv`
