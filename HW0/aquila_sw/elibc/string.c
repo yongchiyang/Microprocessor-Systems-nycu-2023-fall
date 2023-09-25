@@ -97,12 +97,48 @@ long strlen(char *s)
     return n;
 }
 
+/* original strcpy */
+/*
 char *strcpy(char *dst, char *src)
 {
     char *tmp = dst;
 
     while (*src) *(tmp++) = *(src++);
     *tmp = 0;
+    return dst;
+}
+*/
+
+/* edited strcpy from Newlib */
+// ------------------------------------------------------------
+#define UNALIGNED(X, Y) (((long)X & (sizeof (long) - 1)) | ((long)Y & (sizeof (long) - 1)))
+#define DETECTNULL(X) (((X)-0x01010101) & ~(X) & 0x80808080)
+
+char *strcpy(char *dst, char *src)
+{
+    
+    const char *tmp_src = src;
+    char *tmp_dst = dst;
+    const long *aligned_src = (long *) src; 
+    long *aligned_dst;
+    
+    if(!UNALIGNED(src,dst))
+    {
+        aligned_dst = (long *) dst;
+        aligned_src = (long *) src;
+
+        while(!DETECTNULL(*aligned_src))
+        {
+            *(aligned_dst++) = *(aligned_src++);
+        }
+
+        tmp_src = (char *) aligned_src;
+        tmp_dst = (char *) aligned_dst;
+    }
+    
+    // also assign null value
+    while((*(tmp_dst++) = *(tmp_src++)));
+
     return dst;
 }
 
@@ -135,6 +171,8 @@ char *strncat(char *dst, char *src, size_t n)
     return dst;
 }
 
+/* original strcmp */
+/*
 int  strcmp(char *s1, char *s2)
 {
     int value;
@@ -160,6 +198,38 @@ int  strcmp(char *s1, char *s2)
     } while (*s1 != 0 && *s2 != 0);
     return value;
 }
+*/
+
+/* edited strcmp from Newlib*/
+int  strcmp(char *s1, char *s2)
+{
+    const unsigned long *a1, *a2;
+
+    if(!UNALIGNED(s1,s2))
+    {
+        a1 = (unsigned long *) s1;
+        a2 = (unsigned long *) s2;
+        while(*a1 == *a2)
+        {
+            if(DETECTNULL(*a1)) return 0;
+
+            a1++;
+            a2++;
+        }
+
+        s1 = (char *)a1;
+        s2 = (char *)a2;
+    }
+
+    while(*s1 != '\0' && *s1 == *s2)
+    {
+        s1++;
+        s2++;
+    }
+
+    return *(unsigned char *)s1 - *(unsigned char *)s2;
+}
+
 
 int  strncmp(char *s1, char *s2, size_t n)
 {
