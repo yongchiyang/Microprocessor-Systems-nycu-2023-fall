@@ -8,6 +8,30 @@ HW0/aquila_sw/Dhrystone/*.o
 HW0/aquila_sw/Dhrystone/*.map
 HW0/aquila_sw/Dhrystone/*.objdump
 HW0/aquila_sw/Dhrystone/*.elf
+HW0/aquila_sw/CoreMark/*.elf
+HW0/aquila_sw/CoreMark/*.map
+HW0/aquila_sw/CoreMark/*.objdump
+HW0/aquila_sw/CoreMark/*.o
+
+HW1/aquila_sw/uartboot/*.mem
+HW1/aquila_sw/uartboot/*.o
+HW1/aquila_sw/uartboot/*.map
+HW1/aquila_sw/uartboot/*.objdump
+HW1/aquila_sw/uartboot/*.elf
+HW1/aquila_sw/Dhrystone/*.mem
+HW1/aquila_sw/Dhrystone/*.o
+HW1/aquila_sw/Dhrystone/*.map
+HW1/aquila_sw/Dhrystone/*.objdump
+HW1/aquila_sw/Dhrystone/*.elf
+HW1/aquila_sw/CoreMark/*.elf
+HW1/aquila_sw/CoreMark/*.map
+HW1/aquila_sw/CoreMark/*.objdump
+HW1/aquila_sw/CoreMark/*.o
+
+
+
+
+
 
 
 
