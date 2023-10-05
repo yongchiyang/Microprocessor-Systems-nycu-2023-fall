@@ -116,6 +116,14 @@ wire                uart_sel;
 wire [XLEN-1 : 0]   uart_dout;
 wire                uart_ready;
 
+// Profiler
+wire [XLEN-1 : 0]   dev_in;
+reg                 program_end;
+wire [XLEN/8-1 : 0] dev_be_o;
+reg  [XLEN/8-1 : 0] pf_be;
+wire                dev_we_o;
+wire                dev_strobe_o;
+wire                xstate_ack;
 // --------- System Clock Generator --------------------------------------------
 // Generates a 41.66667 MHz system clock from the 100MHz oscillator on the PCB.
 assign usr_reset = ~resetn_i;
@@ -196,16 +204,118 @@ UART(
     .clk(clk),
     .rst(rst),
 
-    .EN(dev_strobe & uart_sel),
+    .EN(dev_strobe_o),
     .ADDR(dev_addr[3:2]),
-    .WR(dev_we),
-    .BE(dev_be),
-    .DATAI(dev_din),
+    .WR(dev_we_o),
+    .BE(dev_be_o),
+    .DATAI(dev_in),
     .DATAO(uart_dout),
     .READY(uart_ready),
 
     .RXD(uart_rx),
     .TXD(uart_tx)
+
+    // new
+    ,.xstate_ack(xstate_ack)
 );
+
+
+
+
+// =============================================================================
+// new 
+// whether to display from the program or the program has ended 
+// for now only display 3 lines < test >
+reg [0 : 102*8 - 1] line1 = {"\015\012====================================== five hotspot functions ======================================"};
+reg [0 : 39*8 - 1]  line2 = {"\015\012function			cpu cycle		alu		mem		stall"};
+reg [0 : 65*8 - 1]  line3 = {"\015\012core_list_reverse		0000000000		0000000000	0000000000	0000000000"};
+reg [0 : 63*8 - 1]  line4 = {"\015\012core_list_find			0000000000		0000000000	0000000000	0000000000"};
+reg [0 : 69*8 - 1]  line5 = {"core_state_transition		0000000000		0000000000	0000000000	0000000000"};
+reg [0 : 75*8 - 1]  line6 = {"matrix_mul_matrix_bitextract	0000000000		0000000000	0000000000	0000000000"};
+reg [0 : 55*8 - 1]  line7 = {"crcu8				0000000000		0000000000	0000000000	0000000000"};
+reg [0 : 102*8 - 1] line8 = {"===================================================================================================="};
+
+localparam LINE1_SIZE = 102, LINE2_SIZE = 39, LINE3_SIZE = 65, LINE4_SIZE = 63; 
+localparam MEM_SIZE = LINE1_SIZE + LINE2_SIZE + LINE3_SIZE;
+integer i;
+reg [7:0] data[0:MEM_SIZE-1];
+reg [10:0] counter = 0;
+reg first_byte = 0, first_byte_next = 0;
+wire       is_done;
+
+
+always@(posedge clk)
+begin
+    if(rst)
+        program_end = 0;
+    else if(dev_din == 3)
+        program_end = 1;
+end
+
+always@(posedge clk)
+begin
+    if(rst)
+    begin
+        for(i = 0; i < LINE1_SIZE; i = i + 1) data[i] <= line1[i*8 +: 8];
+        for(i = 0; i < LINE2_SIZE; i = i + 1) data[i+LINE1_SIZE] <= line2[i*8 +: 8];
+        for(i = 0; i < LINE3_SIZE; i = i + 1) data[i+LINE1_SIZE+LINE2_SIZE] <= line3[i*8 +: 8];
+    end
+end
+
+//  handle the program ended byte '0x03'
+always@(posedge clk)
+begin
+    if(rst) first_byte_next <= 0;
+    else if(program_end & xstate_ack)
+        first_byte_next = 1;
+    else
+        first_byte_next = first_byte_next;
+end
+
+always@(posedge clk)begin
+    if(rst) first_byte <= 0;
+    else first_byte <= first_byte_next;
+end
+
+
+always@(posedge clk)
+begin
+    if(rst) counter <= 0;
+    else if(program_end && xstate_ack && first_byte) counter <= counter + 1;
+    if(counter > MEM_SIZE) counter <= counter;
+end
+
+
+assign dev_in = program_end ? data[counter] : dev_din;
+assign dev_be_o = program_end ? 2'b10 : dev_be;
+assign dev_we_o = program_end ? 1 : dev_we;
+assign dev_strobe_o = program_end && is_done ? 0 : program_end ? 1 : dev_strobe & uart_sel;
+assign is_done = program_end && (counter > MEM_SIZE);
+
+
+/*
+wire [XLEN*2-1 : 0] core_list_reverse_count;
+wire [XLEN*2-1 : 0] core_list_find_count;
+wire [XLEN*2-1 : 0] core_state_transition_count;
+wire [XLEN*2-1 : 0] matrix_mul_matrix_bitextract_count;
+wire [XLEN*2-1 : 0] crcu8_count;
+
+profiler #(.XLEN(XLEN)) Profiler(   
+    
+    // to profiler
+    .clk_i(clk),
+    .rst_i(rst),
+    .stall_i(stall_i),
+    .flush_i(flush_i),
+    .pc_i(pc_i),
+
+    // from profiler
+    .core_list_reverse_o(core_list_reverse_count),
+    .core_list_find_o(core_list_find_count),
+    .core_state_transition_o(core_state_transition_count),
+    .matrix_mul_matrix_bitextract_o(matrix_mul_matrix_bitextract_count),
+    .crcu8_o(crcu8_count)
+);
+*/
 
 endmodule

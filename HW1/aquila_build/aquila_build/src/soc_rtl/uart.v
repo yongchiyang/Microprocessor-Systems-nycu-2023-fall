@@ -90,6 +90,9 @@ module uart #(parameter [15: 0] BAUD = 0)
 // pragma translate_off
     , output simulation_done  // Signaling the end of simulation to the testbench.
 // pragma translate_on
+
+    // new for uart print
+    , output xstate_ack
 );
 
 wire in_simulation = 0
@@ -278,4 +281,6 @@ always @(posedge clk)
     end
 // pragma translate_on
 
+// new for uart print
+assign xstate_ack = uart_xstate == `UART_STATE_ACK;
 endmodule
