@@ -28,7 +28,20 @@ HW1/aquila_sw/CoreMark/*.map
 HW1/aquila_sw/CoreMark/*.objdump
 HW1/aquila_sw/CoreMark/*.o
 
-
+HW2/aquila_sw/uartboot/*.mem
+HW2/aquila_sw/uartboot/*.o
+HW2/aquila_sw/uartboot/*.map
+HW2/aquila_sw/uartboot/*.objdump
+HW2/aquila_sw/uartboot/*.elf
+HW2/aquila_sw/Dhrystone/*.mem
+HW2/aquila_sw/Dhrystone/*.o
+HW2/aquila_sw/Dhrystone/*.map
+HW2/aquila_sw/Dhrystone/*.objdump
+HW2/aquila_sw/Dhrystone/*.elf
+HW2/aquila_sw/CoreMark/*.elf
+HW2/aquila_sw/CoreMark/*.map
+HW2/aquila_sw/CoreMark/*.objdump
+HW2/aquila_sw/CoreMark/*.o
 
 
 
