@@ -69,6 +69,7 @@ set files [list \
  [file normalize "$origin_dir/src/soc_rtl/soc_tb.v" ]\
  [file normalize "$origin_dir/src/mem/uartboot.mem" ]\
  [file normalize "$origin_dir/src/core_rtl/profiler.v" ]\
+ [file normalize "$origin_dir/src/core_rtl/distri_lht_ram.v" ]\
 ]
 set imported_files [import_files -fileset sources_1 $files]
 

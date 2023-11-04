@@ -288,6 +288,15 @@ wire              branch_taken_wbk;
 wire [XLEN-1 : 0] branch_cmp_fetch;
 wire [XLEN-1 : 0] branch_cmp_fet2dec;
 wire [XLEN-1 : 0] branch_cmp_bpu;
+
+localparam HBITS = 10;
+wire [HBITS-1 : 0]    gshare_cmp_fetch;
+wire [HBITS-1 : 0]    gshare_cmp_fet2dec;
+wire [HBITS-1 : 0]    gshare_cmp_dec2exe;
+
+wire [HBITS-1 : 0]    local_cmp_fetch;
+wire [HBITS-1 : 0]    local_cmp_fet2dec;
+wire [HBITS-1 : 0]    local_cmp_dec2exe;
 // =============================================================================
 //  Signals sent to the instruction & data memory IPs in the Aquila SoC
 //
@@ -546,7 +555,11 @@ bpu #(.XLEN(XLEN)) Branch_Prediction_Unit(
 
     // to fetch
     .branch_cmp_fetch(branch_cmp_fetch),
-    .branch_cmp_i(branch_cmp_bpu)
+    .gshare_cmp_fetch(gshare_cmp_fetch),
+    .local_cmp_fetch(local_cmp_fetch),
+    .branch_cmp_i(branch_cmp_bpu),
+    .gshare_cmp_i(gshare_cmp_dec2exe),
+    .local_cmp_i(local_cmp_dec2exe)
 );
 
 // =============================================================================
@@ -611,7 +624,7 @@ program_counter Program_Counter(
 );
 
 // =============================================================================
-fetch Fetch(
+fetch #(.HBITS(HBITS))Fetch(
     // Top-level system signals
     .clk_i(clk_i),
     .rst_i(rst_i),
@@ -644,12 +657,16 @@ fetch Fetch(
 
     // from bpu
     .branch_cmp_i(branch_cmp_fetch),
+    .gshare_cmp_i(gshare_cmp_fetch),
+    .local_cmp_i(local_cmp_fetch),
     // to decode
-    .branch_cmp_o(branch_cmp_fet2dec)
+    .branch_cmp_o(branch_cmp_fet2dec),
+    .gshare_cmp_o(gshare_cmp_fet2dec),
+    .local_cmp_o(local_cmp_fet2dec)
 );
 
 // =============================================================================
-decode Decode(
+decode #(.HBITS(HBITS)) Decode(
     // Top-level system signals
     .clk_i(clk_i),
     .rst_i(rst_i),
@@ -743,7 +760,11 @@ decode Decode(
     .xcpt_tval_o(dec_xcpt_tval2exe),
 
     .branch_cmp_i(branch_cmp_fet2dec),
-    .branch_cmp_o(branch_cmp_bpu)
+    .gshare_cmp_i(gshare_cmp_fet2dec),
+    .local_cmp_i(local_cmp_fet2dec),
+    .branch_cmp_o(branch_cmp_bpu),
+    .gshare_cmp_o(gshare_cmp_dec2exe),
+    .local_cmp_o(local_cmp_dec2exe)
 );
 
 // =============================================================================

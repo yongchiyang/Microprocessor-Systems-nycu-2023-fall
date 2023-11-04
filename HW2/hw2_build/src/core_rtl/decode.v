@@ -59,7 +59,7 @@
 // =============================================================================
 `include "aquila_config.vh"
 
-module decode #(parameter XLEN = 32)
+module decode #(parameter XLEN = 32, parameter HBITS = 8)
 (
     //  Processor clock and reset signals.
     input                   clk_i,
@@ -153,8 +153,12 @@ module decode #(parameter XLEN = 32)
     output reg [XLEN-1 : 0] xcpt_tval_o,
 
     // from fetch
-    input  [XLEN-1 : 0]     branch_cmp_i,
-    output reg [XLEN-1 : 0] branch_cmp_o
+    input  [XLEN-1 : 0]      branch_cmp_i,
+    input  [HBITS-1 : 0]     gshare_cmp_i,
+    input  [HBITS-1 : 0]     local_cmp_i,
+    output reg [XLEN-1 : 0]  branch_cmp_o,
+    output reg [HBITS-1 : 0] gshare_cmp_o,
+    output reg [HBITS-1 : 0] local_cmp_o
 );
 
 // Interal signals of the Decode Stage.
@@ -529,6 +533,8 @@ begin
 
         // new
         branch_cmp_o <= 0;
+        gshare_cmp_o <= 0;
+        local_cmp_o <= 0;
     end
     else if (stall_i)
     begin
@@ -572,6 +578,8 @@ begin
 
         // new
         branch_cmp_o <= branch_cmp_o;
+        gshare_cmp_o <= gshare_cmp_o;
+        local_cmp_o <= local_cmp_o;
     end
     else if (xcpt_valid)
     begin
@@ -616,6 +624,8 @@ begin
 
         // new
         branch_cmp_o <= 0;
+        gshare_cmp_o <= 0;
+        local_cmp_o <= 0;
     end
     else
     begin
@@ -659,6 +669,8 @@ begin
 
         // new
         branch_cmp_o <= branch_cmp_i;
+        gshare_cmp_o <= gshare_cmp_i;
+        local_cmp_o <= local_cmp_i;
     end
 end
 
