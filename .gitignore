@@ -44,7 +44,10 @@ HW2/aquila_sw/CoreMark/*.objdump
 HW2/aquila_sw/CoreMark/*.o
 
 
-
+HW3/aquila_sw/CoreMark/*.elf
+HW3/aquila_sw/CoreMark/*.map
+HW3/aquila_sw/CoreMark/*.objdump
+HW3/aquila_sw/CoreMark/*.o
 
 
 
