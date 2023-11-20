@@ -50,4 +50,7 @@ HW3/aquila_sw/CoreMark/*.objdump
 HW3/aquila_sw/CoreMark/*.o
 
 
-
+HW4/rtos_run/*.elf
+HW4/rtos_run/*.map
+HW4/rtos_run/*.objdump
+HW4/rtos_run/*.o
