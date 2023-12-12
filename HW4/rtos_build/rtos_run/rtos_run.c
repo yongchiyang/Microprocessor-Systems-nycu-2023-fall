@@ -38,7 +38,7 @@ void Task1_Handler(void *pvParameters);
 void Task2_Handler(void *pvParameters);
 
 #define COUNTER_LIMIT 10000
-#define USE_MUTEX 0
+#define USE_MUTEX 1
 
 #if USE_MUTEX
 xSemaphoreHandle xMutex; // a mutex used to protect shared variable.

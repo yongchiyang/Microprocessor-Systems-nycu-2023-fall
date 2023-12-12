@@ -12,6 +12,8 @@ HW0/aquila_sw/CoreMark/*.elf
 HW0/aquila_sw/CoreMark/*.map
 HW0/aquila_sw/CoreMark/*.objdump
 HW0/aquila_sw/CoreMark/*.o
+HW0/aquila_sw/rtos_test/build/*
+HW0/aquila_sw/rtos_test/*.elf
 
 HW1/aquila_sw/uartboot/*.mem
 HW1/aquila_sw/uartboot/*.o
@@ -50,7 +52,11 @@ HW3/aquila_sw/CoreMark/*.objdump
 HW3/aquila_sw/CoreMark/*.o
 
 
-HW4/rtos_run/*.elf
-HW4/rtos_run/*.map
-HW4/rtos_run/*.objdump
-HW4/rtos_run/*.o
+HW4/rtos_build/rtos_run/build/*
+HW4/rtos_build/rtos_run/build_old/*
+HW4/rtos_build/rtos_run/*.elf
+HW4/uartboot/*.mem
+HW4/uartboot/*.o
+HW4/uartboot/*.map
+HW4/uartboot/*.objdump
+HW4/uartboot/*.elf
