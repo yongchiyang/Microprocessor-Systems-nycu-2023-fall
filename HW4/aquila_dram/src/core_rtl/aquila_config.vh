@@ -78,7 +78,7 @@
 // Instruction and Data Caches
 `define ENABLE_CACHE
 `define ICACHE_SIZE 8  // Instruction cache size in KB
-`define DCACHE_SIZE 8  // Data cache size in KB
+`define DCACHE_SIZE 2  // Data cache size in KB
 
 // Branch Prediction
 `define ENABLE_BRANCH_PREDICTION
@@ -93,4 +93,4 @@
 `define NOP 32'h00000013
 
 // SIM_FNAME defines the RISC-V program path of an ELF file for simulation.
-`define SIM_FNAME "D://hello.elf"
+`define SIM_FNAME "C://coremark4k_1.elf"

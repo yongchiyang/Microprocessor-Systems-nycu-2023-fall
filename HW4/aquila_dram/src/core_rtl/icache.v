@@ -87,7 +87,10 @@ module icache
     input                     m_ready_i,       // Data from memory is ready.
 
     /////////// Control signals from other caches   ////////////////////////////
-    input                     d_flushing_i     // D-Cache is busy flushing
+    input                     d_flushing_i,    // D-Cache is busy flushing
+
+    output                    icache_strobe,
+    output                    icache_hit
 );
 
 //=======================================================
@@ -465,4 +468,6 @@ generate
     end
 endgenerate
 
+assign icache_hit = cache_hit;
+assign icache_strobe = (S == Next);
 endmodule

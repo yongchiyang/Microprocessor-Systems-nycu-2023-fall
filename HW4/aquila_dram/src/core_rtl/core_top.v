@@ -117,14 +117,18 @@ module core_top #(
     // Interrupt sources.
     input                 ext_irq_i,
     input                 tmr_irq_i,
-    input                 sft_irq_i
+    input                 sft_irq_i,
+
+    output [XLEN-1 : 0]   wbk_pc_o,
+    output                wbk_stall,
+    output [XLEN-1 : 0]   exe_pc_2dcache
 );
 
 // ------------------------------
 //  Fetch stage output signals
 // ------------------------------
 wire [XLEN-1 : 0] fet_instr2dec;
-wire [XLEN-1 : 0] fet_pc2dec;
+(* mark_debug="true" *) wire [XLEN-1 : 0] fet_pc2dec;
 wire              fet_branch_hit;
 wire              fet_branch_decision;
 
@@ -137,7 +141,7 @@ wire [XLEN-1 : 0] fet_xcpt_tval2dec;
 //  Decode stage output signals
 // ------------------------------
 // Signals sent to multiple destinations
-wire [XLEN-1 : 0] dec_pc;
+(* mark_debug="true" *) wire [XLEN-1 : 0] dec_pc;
 wire              dec_is_branch, dec_is_jal, dec_is_jalr;
 wire              dec_branch_hit, dec_branch_decision;
 
@@ -205,7 +209,7 @@ wire [ 1 : 0]     exe_sys_jump_csr_addr2mem;
 wire              exe_xcpt_valid2mem;
 wire [ 3 : 0]     exe_xcpt_cause2mem;
 wire [XLEN-1 : 0] exe_xcpt_tval2mem;
-wire [XLEN-1 : 0] exe_pc2mem;
+(* mark_debug="true" *) wire [XLEN-1 : 0] exe_pc2mem;
 
 // ------------------------------
 //  Memory stage output signals
@@ -220,7 +224,7 @@ wire [ 1 : 0]     mem_sys_jump_csr_addr2wbk;
 wire              mem_xcpt_valid2wbk;
 wire [ 3 : 0]     mem_xcpt_cause2wbk;
 wire [XLEN-1 : 0] mem_xcpt_tval2wbk;
-wire [XLEN-1 : 0] mem_pc2wbk;
+(* mark_debug="true" *) wire [XLEN-1 : 0] mem_pc2wbk;
 
 // --------------------------------
 //  Writeback stage output signals
@@ -239,7 +243,7 @@ wire [ 1 : 0]     wbk_sys_jump_csr_addr2csr;
 wire              wbk_xcpt_valid2csr;
 wire [ 3 : 0]     wbk_xcpt_cause2csr;
 wire [XLEN-1 : 0] wbk_xcpt_tval2csr;
-wire [XLEN-1 : 0] wbk_pc2csr;
+(* mark_debug="true" *) wire [XLEN-1 : 0] wbk_pc2csr;
 
 // ---------------------------------
 //  Output signals from other units
@@ -248,7 +252,7 @@ wire [XLEN-1 : 0] wbk_pc2csr;
 wire plc_flush2fet, plc_flush2dec, plc_flush2exe, plc_flush2wbk;
 
 // Program counter unit (PCU)
-wire [XLEN-1 : 0] pcu_pc;
+(* mark_debug="true" *) wire [XLEN-1 : 0] pcu_pc;
 
 // Forwarding unit (FWD)
 wire [XLEN-1 : 0] fwd_rs1, fwd_rs2;
@@ -314,8 +318,8 @@ reg [1:0] dS, dS_nxt;
 //
 wire stall_data_hazard; // The stall signal from Pipeline Control.
 wire stall_from_exe;    // The stall signal from Execute.
-wire stall_instr_fetch;
-wire stall_data_fetch;
+(* mark_debug="true" *) wire stall_instr_fetch;
+(* mark_debug="true" *) wire stall_data_fetch;
 wire stall_pipeline;
 
 assign stall_instr_fetch = (!code_ready_i);
@@ -966,4 +970,7 @@ CSR(
     .xcpt_tval_i(wbk_xcpt_tval2csr)
 );
 
+assign wbk_pc_o = wbk_pc2csr;
+assign wbk_stall = stall_pipeline;
+assign exe_pc_2dcache = exe_pc2mem;
 endmodule

@@ -73,6 +73,10 @@ set files [list \
  [file normalize "$origin_dir/src/soc_rtl/mig_7series_sim.v" ]\
  [file normalize "$origin_dir/src/soc_rtl/cdc_sync.v" ]\
  [file normalize "$origin_dir/src/soc_rtl/mem_arbiter.v" ]\
+ [file normalize "$origin_dir/src/core_rtl/freertos_code.vh" ]\
+ [file normalize "$origin_dir/src/core_rtl/profiler.v" ]\
+ [file normalize "$origin_dir/src/core_rtl/icache_profiler.v" ]\
+ [file normalize "$origin_dir/src/core_rtl/dcache_profiler.v" ]\
  [file normalize "$origin_dir/src/mem/uartboot.mem" ]\
 ]
 set imported_files [import_files -fileset sources_1 $files]

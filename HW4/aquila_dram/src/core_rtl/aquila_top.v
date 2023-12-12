@@ -167,6 +167,13 @@ wire is_ext_addr = (data_sel != 2'b0);
 wire [XLEN-1 : 0]         data_from_sysdev;
 wire                      sysdev_d_ready;
 
+// Profiler pc signal
+wire [XLEN-1 : 0]         wb_pc2pf;
+(* mark_debug="true" *) wire                      wb_stall2pf;
+wire [XLEN-1 : 0]         exe_pc2pf;
+wire                      dcache_strobe, dcache_hit;
+wire                      icache_strobe, icache_hit;
+
 // ------ System Memory Map: DDRx DRAM, I/O Devices, or System Devices ---------
 //       [0] 0x0000_0000 - 0x0FFF_FFFF : Tightly-Coupled Memory (TCM)
 //       [1] 0x8000_0000 - 0xBFFF_FFFF : DDRx DRAM memory (cached)
@@ -272,7 +279,12 @@ RISCV_CORE0(
     // Interrupt signals
     .ext_irq_i(1'b0),     // no external interrupt (yet)
     .tmr_irq_i(tmr_irq),
-    .sft_irq_i(sft_irq)
+    .sft_irq_i(sft_irq),
+
+    // to profiler
+    .wbk_pc_o(wb_pc2pf),
+    .wbk_stall(wb_stall2pf),
+    .exe_pc_2dcache(exe_pc2pf)
 );
 
 // ----------------------------------------------------------------------------
@@ -387,7 +399,10 @@ I_Cache(
     .m_strobe_o(m_i_strobe),
     .m_ready_i(m_i_ready),
 
-    .d_flushing_i(dcache_flushing)
+    .d_flushing_i(dcache_flushing),
+
+    .icache_strobe(icache_strobe),
+    .icache_hit(icache_hit)
 );
 
 // Data read/write through D-cache port.
@@ -416,8 +431,45 @@ D_Cache(
     .m_data_o(m_d_cache2dram),
     .m_strobe_o(m_d_strobe),
     .m_rw_o(m_d_rw),
-    .m_ready_i(m_d_ready)
+    .m_ready_i(m_d_ready),
+
+    .ila_strobe_o(dcache_strobe),
+    .ila_catch_hit_o(dcache_hit)
 );
 `endif
+
+dcache_profiler #(.XLEN(XLEN))
+Dcache_profiler(
+    .clk_i(clk_i),
+    .rst_i(rst_i),
+
+    .pc_addr_i(exe_pc2pf),
+    .d_strobe_i(dcache_strobe),
+    .d_cache_hit_i(dcache_hit),
+    .d_ready_i(cache_d_ready)
+);
+
+icache_profiler #(.XLEN(XLEN))
+Icache_profiler(
+    .clk_i(clk_i),
+    .rst_i(rst_i),
+
+    .pc_addr_i(p_i_addr),
+    .i_strobe_i(icache_strobe),
+    .i_cache_hit_i(icache_hit),
+    .i_ready_i(cache_i_ready)
+);
+
+
+profiler #(.XLEN(XLEN))
+Profiler(
+    .clk_i(clk_i),
+    .rst_i(rst_i),
+
+    .stall_i(wb_stall2pf),
+    
+    .wbk_pc_i(wb_pc2pf)
+);
+
 
 endmodule
