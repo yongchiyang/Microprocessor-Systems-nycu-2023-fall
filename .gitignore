@@ -60,3 +60,9 @@ HW4/uartboot/*.o
 HW4/uartboot/*.map
 HW4/uartboot/*.objdump
 HW4/uartboot/*.elf
+
+HW5/ocr_build/ocr/*.mem
+HW5/ocr_build/ocr/*.o
+HW5/ocr_build/ocr/*.map
+HW5/ocr_build/ocr/*.objdump
+HW5/ocr_build/ocr/*.elf
