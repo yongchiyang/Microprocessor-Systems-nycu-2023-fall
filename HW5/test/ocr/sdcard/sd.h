@@ -1,14 +1,15 @@
 // =============================================================================
-//  Program : string.h
-//  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Program : sd.h
+//  Author  : //from araine, path:/araine/fpga/src/bootrom/src/sd.h
+//  Date    : 
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This is header for aquila bootrom function about SD Card I/O.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
-//  None.
+//  Apr/10/2020, by Jen-Yu Chi:
+//    added definition about multi-block write of SD Card
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -51,22 +52,28 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
+#pragma once
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+#include <stdint.h>
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+#define SD_CMD_STOP_TRANSMISSION 12
+#define SD_CMD_READ_BLOCK_MULTIPLE 18
+#define SD_CMD_WRITE_BLOCK_MULTIPLE 25
+#define SD_DATA_TOKEN 0xfe
+#define SD_DATA_TOKEN_CMD25 0xfc
+#define SD_STOP_CMD25 0xfd
+#define SD_DATA_ACCEPT 0x05
+#define SD_DATA_CRC_ERROR 0x0a
+#define SD_DATA_WRITE_ERROR 0x0c
+#define SD_COPY_ERROR_CMD18_CRC -4
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+// errors
+#define SD_INIT_ERROR_CMD0 -1
+#define SD_INIT_ERROR_CMD8 -2
+#define SD_INIT_ERROR_ACMD41 -3
 
-#endif
+int init_sd();
+
+int sd_copy(void *dst, uint32_t src_lba, uint32_t size);
+
+int sd_write(void *dst, uint32_t src_lba, uint32_t size);

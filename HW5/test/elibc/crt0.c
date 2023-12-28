@@ -1,10 +1,10 @@
 // =============================================================================
-//  Program : string.h
+//  Program : crt0.c
 //  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
-// -----------------------------------------------------------------------------
-//  Description:
-//  This is the minimal string library for aquila.
+//  Date    : Jan/14/2020
+// =============================================================================
+//  This is the entry point of the application code. Must be located at
+//  the beginning of the text section in the linker script.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -51,22 +51,38 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+#define SET_STACK_POINTER 1 // Set sp according to the linker script.
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+extern int main(void);
 
-void *dsa_cpy(void *dst, void *src, size_t n);
-
+#if SET_STACK_POINTER
+extern unsigned int __stack_top; /* declared in the linker script */
+unsigned int stack_top = (unsigned int) &__stack_top;
+unsigned int sp_store;
 #endif
+
+void crt0(void)
+{
+#if SET_STACK_POINTER
+    // We must save the return address to the boot loader before
+    // we assign the sp to __stack_top defined in the linker script.
+    asm volatile ("lui t0, %hi(sp_store)");
+    asm volatile ("sw sp, %lo(sp_store)(t0)");
+
+    // Set the stack pointer. The application linker script sets
+    // the top address of the stack area to __stack_top.
+    asm volatile("lui t0, %hi(stack_top)");
+    asm volatile("lw  sp, %lo(stack_top)(t0)");
+#endif
+
+    main();
+
+#if SET_STACK_POINTER
+    // Now, we must restore the stack pointer of the boot loader
+    // so that we can execute the epilogue of the boot loader properly.
+    asm volatile ("lui t0, %hi(sp_store)");
+    asm volatile ("lw sp, %lo(sp_store)(t0)");
+#endif
+}
+

@@ -1,10 +1,11 @@
+`timescale 1ns / 1ps
 // =============================================================================
-//  Program : string.h
-//  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Program : bcu.v
+//  Author  : Jin-you Wu
+//  Date    : Dec/19/2018
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This is the Branch Condition Unit of the Aquila core (A RISC-V core).
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -51,22 +52,39 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
+`include "aquila_config.vh"
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+module bcu#(parameter XLEN = 32)
+(
+    input  [XLEN-1 : 0] a_i,
+    input  [XLEN-1 : 0] b_i,
+    input  [ 2 : 0]     operation_sel_i,
+    output              compare_result_o
+);
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+wire signed [XLEN-1 : 0] signed_a = a_i;
+wire signed [XLEN-1 : 0] signed_b = b_i;
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+wire result_beq  = (a_i == b_i) ? 1 : 0;
+wire result_bne  = (a_i != b_i) ? 1 : 0;
+wire result_blt  = (signed_a < signed_b) ? 1 : 0;
+wire result_bge  = (signed_a >= signed_b) ? 1 : 0;
+wire result_bltu = (a_i < b_i) ? 1 : 0;
+wire result_bgeu = (a_i >= b_i) ? 1 : 0;
 
-#endif
+wire operation_beq = (operation_sel_i == 3'b000);
+wire operation_bne = (operation_sel_i == 3'b001);
+wire operation_blt = (operation_sel_i == 3'b100);
+wire operation_bge = (operation_sel_i == 3'b101);
+wire operation_bltu = (operation_sel_i == 3'b110);
+wire operation_bgeu = (operation_sel_i == 3'b111);
+
+assign compare_result_o =
+       (operation_beq & result_beq )
+       | (operation_bne & result_bne )
+       | (operation_blt & result_blt )
+       | (operation_bge & result_bge )
+       | (operation_bltu & result_bltu)
+       | (operation_bgeu & result_bgeu);
+
+endmodule // bcu

@@ -1,5 +1,5 @@
 // =============================================================================
-//  Program : string.h
+//  Program : stdio.h
 //  Author  : Chun-Jen Tsai
 //  Date    : Dec/09/2019
 // -----------------------------------------------------------------------------
@@ -51,22 +51,26 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
+#ifndef __STDIO__H__
+#define __STDIO__H__
+
+#include <stdarg.h>
 #include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+#define EOF -1
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+typedef struct {  /* dummy type for now */
+	int fd;
+	int ostat;
+} FILE;
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+extern FILE *stdin;
+extern FILE *stdout;
+extern FILE *stderr;
 
+int printf(char *fmt, ...);
+int fputs(const char *s, FILE *fp);
+int putchar(int c);
+int getchar(void);
+char *fgets(char *s, int n, FILE *fp);
 #endif

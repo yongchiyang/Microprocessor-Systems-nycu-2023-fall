@@ -1,10 +1,11 @@
+`timescale 1ns / 1ps
 // =============================================================================
-//  Program : string.h
+//  Program : sram_dp.v
 //  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Date    : Jan/09/2020
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This module synthesizes dual-port BRAM for TCM scratchpad.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -51,22 +52,92 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+module sram_dp
+#(parameter DATA_WIDTH = 32, N_ENTRIES = 1024, ADDRW = $clog2(N_ENTRIES))
+(
+    input                         clk1_i,
+    input                         en1_i,
+    input                         we1_i,
+    input  [DATA_WIDTH/8-1 : 0]   be1_i,
+    input  [ADDRW-1 : 0]          addr1_i,
+    input  [DATA_WIDTH-1 : 0]     data1_i,
+    output reg [DATA_WIDTH-1 : 0] data1_o,
+    output reg                    ready1_o,
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+    input                         clk2_i,
+    input                         en2_i,
+    input                         we2_i,
+    input  [DATA_WIDTH/8-1 : 0]   be2_i,
+    input  [ADDRW-1 : 0]          addr2_i,
+    input  [DATA_WIDTH-1 : 0]     data2_i,
+    output reg [DATA_WIDTH-1 : 0] data2_o,
+    output reg                    ready2_o
+);
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+reg [DATA_WIDTH-1 : 0] RAM [N_ENTRIES-1 : 0];
 
-#endif
+initial
+begin
+    $readmemh("uartboot.mem", RAM);
+end
+
+// ------------------------------------
+// Read operation on port #1
+// ------------------------------------
+always@(posedge clk1_i)
+begin
+    if (en1_i)
+    begin
+        data1_o <= RAM[addr1_i];
+        ready1_o <= 1;
+    end
+    else
+        ready1_o <= 0;
+end
+
+// ------------------------------------
+// Write operations on port #1
+// ------------------------------------
+integer idx1;
+
+always@(posedge clk1_i)
+begin
+    if (en1_i)
+    begin
+        if (we1_i)
+            for (idx1 = 0; idx1 < DATA_WIDTH/8; idx1 = idx1 + 1)
+                if (be1_i[idx1]) RAM[addr1_i][(idx1<<3) +: 8] <= data1_i[(idx1<<3) +: 8];
+    end
+end
+
+// ------------------------------------
+// Read operation on port #2
+// ------------------------------------
+always@(posedge clk2_i)
+begin
+    if (en2_i)
+    begin
+        data2_o <= RAM[addr2_i];
+        ready2_o <= 1;
+    end
+    else
+        ready2_o <= 0;
+end
+
+// ------------------------------------
+// Write operations on port #2
+// ------------------------------------
+integer idx2;
+
+always@(posedge clk2_i)
+begin
+    if (en2_i)
+    begin
+        if (we2_i)
+            for (idx2 = 0; idx2 < DATA_WIDTH/8; idx2 = idx2 + 1)
+                if (be2_i[idx2]) RAM[addr2_i][(idx2<<3) +: 8] <= data2_i[(idx2<<3) +: 8];
+    end
+end
+
+endmodule   // sram_dp

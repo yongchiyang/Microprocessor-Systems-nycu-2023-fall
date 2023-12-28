@@ -1,14 +1,11 @@
+`timescale 1ns / 1ps 
 // =============================================================================
-//  Program : string.h
+//  Program : aquila_config.vh
 //  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Date    : Aug/23/2022
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
-// -----------------------------------------------------------------------------
-//  Revision information:
-//
-//  None.
+//  This is the configuration parameters for the Aquila core.
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -17,7 +14,7 @@
 //  In the following license statements, "software" refers to the
 //  "source code" of the complete hardware/software system.
 //
-//  Copyright 2019,
+//  Copyright 2022,
 //                    Embedded Intelligent Systems Lab (EISL)
 //                    Deparment of Computer Science
 //                    National Chiao Tung Uniersity
@@ -51,22 +48,49 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+//==============================================================================================
+// Parameters and Integers
+//==============================================================================================
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+// The target board can be ARTY or KC705, the MACRO is defined globally
+//   in the TCL script when the project was created
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+`ifdef ARTY
+    `define CLP   128             // Cache line size
+    `define DRAMP 16              // DRAM chip bus width
+    `define WDFP  128             // MIG controller user logic data width
+    `define DQSP  2               // MIG DQS parameter
+    `define USRP  4               // # of user buttons & LEDs
+    `define SOC_CLK 41_666_667    // system clock rate
+`else // KC705
+    `define CLP   256             // Cache line size
+    `define DRAMP 64              // DRAM chip bus width
+    `define WDFP  512             // MIG controller user logic data width
+    `define DQSP  8               // MIG DQS parameter
+    `define USRP  5               // # of user buttons & LEDs
+    `define SOC_CLK 100_000_000   // system clock rate
+`endif
 
-#endif
+// Tightly-Coupled Memory Size
+`define TCM_SIZE_IN_WORDS 16384   // 64KB
+
+// Instruction and Data Caches
+`define ENABLE_CACHE
+`define ICACHE_SIZE 8  // Instruction cache size in KB
+`define DCACHE_SIZE 8  // Data cache size in KB
+
+// Branch Prediction
+`define ENABLE_BRANCH_PREDICTION
+
+// Atomic Unit
+`define ENABLE_ATOMIC_UNIT
+
+// Muldiv Integer multiplier
+`define ENABLE_FAST_MULTIPLY
+
+// Fetch
+`define NOP 32'h00000013
+
+// SIM_FNAME defines the RISC-V program path of an ELF file for simulation.
+`define SIM_FNAME "D://hello.elf"

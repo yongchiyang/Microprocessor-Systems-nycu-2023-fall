@@ -1,14 +1,16 @@
+`timescale 1ns / 1ps
 // =============================================================================
-//  Program : string.h
-//  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Program : alu.v
+//  Author  : Jin-you Wu
+//  Date    : Dec/19/2018
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This is the Arithmetic Logic Unit of the Aquila core (A RISC-V core).
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
-//  None.
+//  Nov/26/2019, by Chun-Jen Tsai:
+//    Modify the arithmetic shift code and parameterize XLEN.
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -51,22 +53,51 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
+`include "aquila_config.vh"
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+module alu #(parameter XLEN = 32)
+(
+    input  [XLEN-1 : 0] a_i,
+    input  [XLEN-1 : 0] b_i,             // shift amount
+    input  [ 2 : 0]     operation_sel_i,
+    input               shift_sel_i,     // arith. or logical shift
+    output [XLEN-1 : 0] alu_result_o
+);
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+wire [XLEN-1 : 0] ones;
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+wire [XLEN-1 : 0] result_add, result_sll, result_slt, result_sltu;
+wire [XLEN-1 : 0] result_xor, result_sr, result_or, result_and;
 
-#endif
+wire operation_add, operation_sll, operation_slt, operation_sltu;
+wire operation_xor, operation_sr, operation_or, operation_and;
+
+assign result_add = a_i + b_i;                                    // add
+assign result_sll = a_i << b_i[4:0];                              // sll
+assign result_slt = ($signed(a_i) < $signed(b_i)) ? 1 : 0;        // slt
+assign result_sltu = (a_i < b_i) ? 1 : 0;                         // sltu
+assign result_xor = a_i ^ b_i;                                    // xor
+assign result_sr = shift_sel_i? ($signed(a_i) >>> b_i[4:0]) : ($signed(a_i) >> b_i[4:0]); // sra, srl
+assign result_or = a_i | b_i;                                     // or
+assign result_and = a_i & b_i;                                    // and
+
+assign operation_add  = (operation_sel_i == 3'b000);
+assign operation_sll  = (operation_sel_i == 3'b001);
+assign operation_slt  = (operation_sel_i == 3'b010);
+assign operation_sltu = (operation_sel_i == 3'b011);
+assign operation_xor  = (operation_sel_i == 3'b100);
+assign operation_sr   = (operation_sel_i == 3'b101);
+assign operation_or   = (operation_sel_i == 3'b110);
+assign operation_and  = (operation_sel_i == 3'b111);
+
+assign alu_result_o =
+       (    {XLEN{operation_add }} & result_add  )
+       | (  {XLEN{operation_sll }} & result_sll  )
+       | (  {XLEN{operation_slt }} & result_slt  )
+       | (  {XLEN{operation_sltu}} & result_sltu )
+       | (  {XLEN{operation_xor }} & result_xor  )
+       | (  {XLEN{operation_sr  }} & result_sr   )
+       | (  {XLEN{operation_or  }} & result_or   )
+       | (  {XLEN{operation_and }} & result_and  );
+
+endmodule // alu

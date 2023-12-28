@@ -66,3 +66,9 @@ HW5/ocr_build/ocr/*.o
 HW5/ocr_build/ocr/*.map
 HW5/ocr_build/ocr/*.objdump
 HW5/ocr_build/ocr/*.elf
+
+HW5/test/ocr/*.mem
+HW5/test/ocr/*.o
+HW5/test/ocr/*.map
+HW5/test/ocr/*.objdump
+HW5/test/ocr/*.elf

@@ -1,10 +1,10 @@
 // =============================================================================
-//  Program : string.h
+//  Program : time.h
 //  Author  : Chun-Jen Tsai
 //  Date    : Dec/09/2019
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This is the minimal time library for aquila.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -51,22 +51,14 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
+#ifndef __TIME__H__
+#define __TIME__H__
 #include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+#define CLOCKS_PER_SEC  1000000      /*         1 MHz */
+#define CPU_FREQ_HZ    41666667      /* 41.666667 MHz */
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+typedef unsigned long clock_t;
 
-void *dsa_cpy(void *dst, void *src, size_t n);
-
+clock_t clock(void);       /* returns # MHz clock ticks */
 #endif

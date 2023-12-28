@@ -1,10 +1,13 @@
+`timescale 1ns / 1ps
 // =============================================================================
-//  Program : string.h
+//  Program : sram.v
 //  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Date    : Sep/21/2023
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This module synthesizes an SRAM with output 'data_o' in latch mode.
+//  when 'we_i' is enabled, 'data_i' will be feed to 'data_o' before the
+//  next clock rising edge.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -17,10 +20,10 @@
 //  In the following license statements, "software" refers to the
 //  "source code" of the complete hardware/software system.
 //
-//  Copyright 2019,
+//  Copyright 2023,
 //                    Embedded Intelligent Systems Lab (EISL)
 //                    Deparment of Computer Science
-//                    National Chiao Tung Uniersity
+//                    National Yang Ming Chiao Tung Uniersity (NYCU)
 //                    Hsinchu, Taiwan.
 //
 //  All rights reserved.
@@ -51,22 +54,31 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+module sram
+#(parameter DATA_WIDTH = 32, N_ENTRIES = 128)
+(
+    input                           clk_i,
+    input                           en_i,
+    input                           we_i,
+    input  [$clog2(N_ENTRIES)-1: 0] addr_i,
+    input  [DATA_WIDTH-1: 0]        data_i,
+    output reg [DATA_WIDTH-1: 0]    data_o
+);
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+reg [DATA_WIDTH-1 : 0] RAM [N_ENTRIES-1: 0];
 
-void *dsa_cpy(void *dst, void *src, size_t n);
-
-#endif
+always @(posedge clk_i)
+begin
+    if (en_i)
+    begin
+        if (we_i)
+        begin
+            RAM[addr_i] <= data_i;
+            data_o <= data_i;
+        end
+        else
+            data_o <= RAM[addr_i];
+    end
+end
+endmodule

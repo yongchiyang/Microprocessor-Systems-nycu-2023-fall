@@ -67,6 +67,4 @@ char *strncat(char *d, char *s, size_t n);
 int  strcmp(char *s1, char *s2);
 int  strncmp(char *d, char *s, size_t n);
 
-void *dsa_cpy(void *dst, void *src, size_t n);
-
 #endif

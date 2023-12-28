@@ -25,28 +25,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <time.h>
 
 #include "neuronet.h"
 
-int count = 0;
-#define DSA_READY_ADDR      0xC4000000
-#define DSA_CNT_ADDR        0xC4000004
-#define DSA_RESULT_ADDR     0xC4000008
-#define DSA_TRIGGER_ADDR    0xC400000C
-#define DSA_BUFF_1          0xC4001000
-#define DSA_BUFF_2          0xC4002000
-volatile unsigned int * p_dsa_ready = (unsigned int *) DSA_READY_ADDR;
-volatile unsigned int * p_dsa_cnt = (unsigned int *) DSA_CNT_ADDR;
-volatile float * p_dsa_result = (float *) DSA_RESULT_ADDR;
-volatile unsigned int * p_dsa_trigger = (unsigned int *) DSA_TRIGGER_ADDR;
-volatile float * p_dsa_buff_1 = (float *) DSA_BUFF_1;
-volatile float * p_dsa_buff_2 = (float *) DSA_BUFF_2;
-
-
 void neuronet_init(NeuroNet *nn, int n_layers, int *n_neurons)
 {
-    count = 0;
     int layer_idx, neuron_idx, sum;
     float *head[MAX_LAYERS];  // Pointer to the first neuron value of each layer.
 
@@ -129,15 +112,13 @@ void neuronet_free(NeuroNet *nn)
 int neuronet_eval(NeuroNet *nn, float *images)
 {
     float inner_product, max;
-    float *p_neuron;
-    float *p_weight;
+    float *p_neuron, *p_weight;
     int idx, layer_idx, neuron_idx, max_idx;
 
     // Copy the input image array (784 pixels) to the input neurons.
-    //memcpy((void *) nn->neurons, (void *) images, nn->n_neurons[0]*sizeof(float));
+    memcpy((void *) nn->neurons, (void *) images, nn->n_neurons[0]*sizeof(float));
 
-    // Forward computations - original
-    /*
+    // Forward computations
     neuron_idx = nn->n_neurons[0];
     for (layer_idx = 1; layer_idx < nn->total_layers; layer_idx++)
     {
@@ -153,35 +134,6 @@ int neuronet_eval(NeuroNet *nn, float *images)
             {
                 inner_product += (*p_neuron++) * (*p_weight++);
             }
-
-            inner_product += *(p_weight); // The last weight of a neuron is the bias.
-            nn->neurons[neuron_idx] = relu(inner_product);
-        }
-    }*/
-
-    // Forward computations
-    neuron_idx = nn->n_neurons[0];
-    for (layer_idx = 1; layer_idx < nn->total_layers; layer_idx++)
-    {
-
-        p_neuron = nn->previous_neurons[neuron_idx];
-        if(layer_idx == 1) dsa_cpy((void *) p_dsa_buff_1, (void *) images, nn->n_neurons[layer_idx-1]);
-        else dsa_cpy((void *) p_dsa_buff_1, (void *) p_neuron, nn->n_neurons[layer_idx-1]);
-        for (idx = 0; idx < nn->n_neurons[layer_idx]; idx++, neuron_idx++)
-        {
-            // 'p_weight' points to the first forward weight of a layer.
-            p_weight = nn->forward_weights[neuron_idx];            
-    
-            inner_product = 0.0;
-            dsa_cpy((void *) p_dsa_buff_2, (void *) p_weight, nn->n_neurons[layer_idx-1]);
-            
-            *p_dsa_cnt = nn->n_neurons[layer_idx-1];
-            *p_dsa_trigger = 1;
-            // memcpy first, while !p_dsa_ready
-            while(!(*p_dsa_ready));
-            //float dsa_result = (*p_dsa_result);
-            inner_product = (*p_dsa_result);
-            *p_dsa_ready = 0;
 
             inner_product += *(p_weight); // The last weight of a neuron is the bias.
             nn->neurons[neuron_idx] = relu(inner_product);

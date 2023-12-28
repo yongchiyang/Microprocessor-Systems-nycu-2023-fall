@@ -1,14 +1,21 @@
+`timescale 1ns / 1ps
 // =============================================================================
-//  Program : string.h
-//  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Program : pipeline_control.v
+//  Author  : Jin-you Wu
+//  Date    : Dec/17/2018
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This is the pipeline controller of the Aquila core (A RISC-V RV32IM core).
+//  This module integrates the pipeline_control and hazard_detection signals.
+//
+//  The pipeline controller was based on the Microblaze-compatible processor,
+//  KernelBlaze, originally designed by Dong-Fong Syu on Sep/01/2017.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
-//  None.
+//  Aug/15/2020, by Chun-Jen Tsai:
+//    Removed the Unconditional Branch Prediction Unit and merged its function
+//    into the BPU.
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -51,22 +58,55 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
+`include "aquila_config.vh"
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+module pipeline_control(
+    // from Decode.
+    input        unsupported_instr_i,
+    input        is_load_hazard,
+    input        branch_hit_i,
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+    // from Execution.
+    input        branch_taken_i,
+    input        branch_misprediction_i,
+    input        is_fencei_i,
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+    // System Jump operation.
+    input        sys_jump_i,
 
-#endif
+    // Signal that flushes Fetch.
+    output       flush2fet_o,
+
+    // Signal that flushes Decode.
+    output       flush2dec_o,
+
+    // Signal that flushes Execute.
+    output       flush2exe_o,
+
+    // Signal that flushes Writeback.
+    output       flush2wbk_o,
+
+    //  Signals that stall PCU and Fetch due to load-use data hazard,
+    output       data_hazard_o
+);
+
+wire branch_flush;
+
+`ifdef ENABLE_BRANCH_PREDICTION
+    // with branch predictor
+    assign branch_flush = (branch_taken_i & !branch_hit_i) | branch_misprediction_i;
+`else
+    // without branch predictor
+    assign branch_flush = branch_taken_i;
+`endif
+
+// ================================================================================
+//  Output signals
+//
+assign flush2fet_o = branch_flush | sys_jump_i | is_fencei_i;
+assign flush2dec_o = branch_flush | sys_jump_i | is_fencei_i | is_load_hazard | unsupported_instr_i;
+assign flush2exe_o = is_fencei_i | sys_jump_i;
+assign flush2wbk_o = sys_jump_i;
+assign data_hazard_o = is_load_hazard;
+
+endmodule

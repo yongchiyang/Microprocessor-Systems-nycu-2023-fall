@@ -1,10 +1,11 @@
 // =============================================================================
-//  Program : string.h
+//  Program : stdlib.h
 //  Author  : Chun-Jen Tsai
 //  Date    : Dec/09/2019
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This is the minimal stdlib library for aquila.  The malloc()/free() functions
+//  are derived from the FreeRTOS project.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -51,22 +52,21 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
+#ifndef __STDLIB__H__
+#define __STDLIB__H__
 #include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+void *malloc(size_t n);
+void free(void *m);
+void *calloc(size_t n, size_t sz);
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+int atoi(char *s);
+int abs(int n);
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+void exit(int status);
 
+#define RAND_MAX 0x7FFF
+
+void srand(unsigned int seed);
+int rand(void);
 #endif

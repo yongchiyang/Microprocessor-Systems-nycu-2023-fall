@@ -1,14 +1,15 @@
+/*
 // =============================================================================
-//  Program : string.h
+//  Program : ocr.ld
 //  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
-// -----------------------------------------------------------------------------
-//  Description:
-//  This is the minimal string library for aquila.
+//  Date    : Dec/06/2023
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
 //  None.
+// -----------------------------------------------------------------------------
+//  Description:
+//  This is the linker script of a program compiled to run from DDRx memory.
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -51,22 +52,44 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
+*/
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+__stack_size = 0x800;
+__heap_size  = 0x200000;
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+MEMORY
+{
+    code_ram   (rx!rw) : ORIGIN = 0x80001000, LENGTH = 0x10000
+    data_ram   (rw!x)  : ORIGIN = 0x80011000, LENGTH = 0x310000
+}
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+ENTRY(crt0)
 
-#endif
+SECTIONS
+{
+    .text :
+    {
+        *(.text*)
+    } > code_ram
+
+    .data :
+    {
+        *(.data)
+        *(.bss)
+        *(.rodata*)
+    } > data_ram
+
+    .heap : ALIGN(0x10)
+    {
+        __heap_start = .;
+        . += __heap_size;
+    } > data_ram
+
+    .stack : ALIGN(0x10)
+    {
+        . += __stack_size;
+        __stack_top = .;
+        __freertos_irq_stack_top = .;
+    } > data_ram
+}
+

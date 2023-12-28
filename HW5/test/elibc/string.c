@@ -227,7 +227,10 @@ void *memcpy(void *d, void *s, size_t n)
 
     // Copying trailing bytes for aligned memory block, or the entire
     // memory block if not aligned.
-    while (n-- > 0) *d0++ = *s0++;
+    while (n-- > 0) 
+    {
+        *d0++ = *s0++;
+    }
 
     return d;
 }
@@ -283,14 +286,4 @@ char *strncat(char *dst, char *src, size_t n)
     while (*src && n) *(tmp++) = *(src++), n--;
     *tmp = 0;
     return dst;
-}
-
-void *dsa_cpy(void *d, void *s, size_t n)
-{
-    long *aligned_d = d;
-    const long *aligned_s = s;
-
-    while (n-- > 0) *aligned_d++ = *aligned_s++;
-
-    return d;
 }

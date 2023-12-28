@@ -1,10 +1,11 @@
+`timescale 1ns / 1ps
 // =============================================================================
-//  Program : string.h
-//  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Program : distri_ram.v
+//  Author  : Dong-Fong Syu
+//  Date    : Feb/01/2018
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This is the Distributed RAM module for the Aquila core (A RISC-V core).
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -51,22 +52,37 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+module distri_ram
+#(parameter ENTRY_NUM = 32,
+  parameter XLEN = 32,
+  parameter AWDTH = $clog2(ENTRY_NUM))
+(
+    input                clk_i,
+    input                we_i,
+    input  [AWDTH-1 : 0] read_addr_i,
+    input  [AWDTH-1 : 0] write_addr_i,
+    input  [XLEN-1 : 0]  data_i,
+    output [XLEN-1 : 0]  data_o
+);
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+reg [XLEN-1 : 0] RAM[ENTRY_NUM-1 : 0];
+integer i;
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+assign data_o = RAM[read_addr_i];
 
-#endif
+initial
+begin
+    for (i = 0; i < ENTRY_NUM; i = i + 1)
+        RAM[i] <= 0;
+end
+
+always @(posedge clk_i)
+begin
+    if (we_i)
+    begin
+        RAM[write_addr_i] <= data_i;
+    end
+end
+
+endmodule

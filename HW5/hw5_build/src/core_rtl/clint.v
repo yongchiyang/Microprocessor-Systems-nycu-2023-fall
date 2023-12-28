@@ -1,14 +1,24 @@
+`timescale 1ns / 1ps
 // =============================================================================
-//  Program : string.h
-//  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
+//  Program : clint.v
+//  Author  : Jin-you Wu
+//  Date    : Feb/28/2019
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This module implements the RISC-V Core Local Interrupt (CLINT) Controller.
+//  The ticking signal is currently fixed to the CPU clock instead of an external
+//  RTC clock. The OS (e.g., FreeRTOS) must set the frequency of clk_i to the
+//  OS timer parameter properly (e.g., configCPU_CLOCK_HZ).
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
-//  None.
+//  Aug/24/2022, by Chun-Jen Tsai:
+//    Remove the TIMER parameter and use the CPU clock to drive CLINT.
+//    Previous code assumes that the interrupt generator is driven by a
+//    1000 Hz clock (i.e. 1 msec ticks) and the TIMER parameter is
+//    used to set the number of CPU ticks within 1 msec.  Unfortunately,
+//    this design does not match the popular SiFive CLINT behavior.
+//
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -51,22 +61,65 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
+`include "aquila_config.vh"
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+module clint
+#( parameter XLEN = 32 )
+(
+    input                   clk_i,
+    input                   rst_i,
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+    input                   en_i,
+    input                   we_i,
+    input [2 : 0]           addr_i,
+    input [XLEN-1 : 0]      data_i,
+    output reg [XLEN-1 : 0] data_o,
+    output reg              data_ready_o,
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+    output                  tmr_irq_o,
+    output                  sft_irq_o
+);
 
-#endif
+reg  [XLEN-1 : 0] clint_mem[0: 4];
+wire [63: 0] mtime = { clint_mem[1], clint_mem[0] };
+wire [63: 0] mtimecmp = { clint_mem[3], clint_mem[2] };
+wire [XLEN-1 : 0] msip = clint_mem[4];
+
+wire carry = (clint_mem[0] == 32'hFFFF_FFFF);
+
+always @(posedge clk_i)
+begin
+    if (rst_i)
+    begin
+        clint_mem[0] <= 32'b0;
+        clint_mem[1] <= 32'b0;
+        clint_mem[2] <= 32'b0;
+        clint_mem[3] <= 32'b0;
+        clint_mem[4] <= 32'b0;
+    end
+    else if (we_i)
+    begin
+        clint_mem[addr_i] <= data_i;
+    end
+    else
+    begin
+        clint_mem[0] <= clint_mem[0] + 1;
+        clint_mem[1] <= clint_mem[1] + carry;
+    end
+end
+
+always @(posedge clk_i)
+begin
+    if (en_i)
+    begin
+        data_o <= clint_mem[addr_i];
+        data_ready_o <= 1;   // CJ Tsai 0306_2020: Add ready signal for bus masters.
+    end
+    else
+        data_ready_o <= 0;
+end
+
+assign tmr_irq_o = (mtime >= mtimecmp) & (| mtimecmp);
+assign sft_irq_o = | msip;
+
+endmodule // clint

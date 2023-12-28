@@ -44,10 +44,9 @@ void neuronet_free(NeuroNet *nn);
 int  neuronet_eval(NeuroNet *nn, float *images);
 float relu(float x);
 
-#define DSA_READY_ADDR      0xC4000000
-#define DSA_CNT_ADDR        0xC4000004
-#define DSA_RESULT_ADDR     0xC4000008
-#define DSA_TRIGGER_ADDR    0xC400000C
-#define DSA_BUFF_1          0xC4001000
-#define DSA_BUFF_2          0xC4002000
+#define DSA_READY_ADDR  0xC4000000
+#define DSA_CNT_ADDR    0xC4000004
+#define DSA_RESULT_ADDR 0xC4000008
+#define DSA_BUFF_1      0xC4001000
+#define DSA_BUFF_2      0xC4002000
 

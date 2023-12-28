@@ -1,10 +1,10 @@
 // =============================================================================
-//  Program : string.h
+//  Program : time.c
 //  Author  : Chun-Jen Tsai
 //  Date    : Dec/09/2019
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the minimal string library for aquila.
+//  This is the minimal time library for aquila.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -51,22 +51,23 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __STRING__H__
-#define __STRING__H__
-#include <stddef.h>
 
-void *memcpy(void *dst, void *src, size_t n);
-void *memmove(void *dst, void *src, size_t n);
-void *memset(void *s, int v, size_t n);
+#include <time.h>
 
-long strlen(char *s);
-char *strcpy(char *dst, char *src);
-char *strncpy(char *d, char *s, size_t n);
-char *strcat(char *d, char *s);
-char *strncat(char *d, char *s, size_t n);
-int  strcmp(char *s1, char *s2);
-int  strncmp(char *d, char *s, size_t n);
+clock_t clock(void)
+{
+    size_t mhz_ticks;
+    size_t cycles, cyclesh;
+    long long sys_cycles;
 
-void *dsa_cpy(void *dst, void *src, size_t n);
+    // Use the counter instruction 'csrrs' to read the machine-mode
+    // cpu cycle counter, then convert it to return the 1MHz-tick
+    // counts since reset.
+    //
+    asm volatile ("csrrs %0, mcycle, x0" : "=r" (cycles));
+    asm volatile ("csrrs %0, mcycleh, x0" : "=r" (cyclesh));
+    sys_cycles = ((long long) cyclesh << 32) + cycles;
+    mhz_ticks = (size_t) ((sys_cycles*CLOCKS_PER_SEC)/CPU_FREQ_HZ);
 
-#endif
+    return mhz_ticks;
+}
