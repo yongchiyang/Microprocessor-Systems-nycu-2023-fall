@@ -23,6 +23,15 @@
 
 #define MAX_LAYERS 8
 
+#define DSA_READY_ADDR      0xC4000000
+#define DSA_CNT_ADDR        0xC4000004
+#define DSA_RESULT_ADDR     0xC4000008
+#define DSA_TRIGGER_ADDR    0xC400000C
+#define DSA_BUFF_1          0xC4001000
+#define DSA_BUFF_2          0xC4002000
+#define DSA_BUFF_3          0xC4003000
+
+
 typedef struct __NeuroNet
 {
     float *neurons;             // Array that stores all the neuron values.
@@ -44,10 +53,7 @@ void neuronet_free(NeuroNet *nn);
 int  neuronet_eval(NeuroNet *nn, float *images);
 float relu(float x);
 
-#define DSA_READY_ADDR      0xC4000000
-#define DSA_CNT_ADDR        0xC4000004
-#define DSA_RESULT_ADDR     0xC4000008
-#define DSA_TRIGGER_ADDR    0xC400000C
-#define DSA_BUFF_1          0xC4001000
-#define DSA_BUFF_2          0xC4002000
+// DSA
+int  ping_pong_eval(NeuroNet *nn, float *images);
+int  one_buffer_eval(NeuroNet *nn, float *images);
 

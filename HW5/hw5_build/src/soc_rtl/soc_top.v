@@ -261,7 +261,7 @@ assign uart_sel  = (dev_addr[XLEN-1:XLEN-8] == 8'hC0);
 assign spi_sel   = (dev_addr[XLEN-1:XLEN-8] == 8'hC2);
 assign dsa_sel   = (dev_addr[XLEN-1:XLEN-8] == 8'hC4);
 assign dev_dout  = (uart_sel)? uart_dout : (spi_sel)? spi_dout : dsa_sel ? dsa_dout : {XLEN{1'b0}};
-assign dev_ready = (uart_sel)? uart_ready : (spi_sel)? spi_ready : dsa_sel ? dsa_ready : {XLEN{1'b0}};
+assign dev_ready = (uart_sel)? uart_ready : (spi_sel)? spi_ready : dsa_sel ? dsa_ready : 1'b0;
 
 // ----------------------------------------------------------------------------
 //  UART Controller with a simple memory-mapped I/O interface.
@@ -535,13 +535,14 @@ mig_7series_0 MIG(
 (* mark_debug="true" *) wire [XLEN-1 : 0] c_data;
 (* mark_debug="true" *) wire [XLEN-1 : 0] r_data;
 
+
 data_feeder #(.XLEN(32), .BUF_ADDR_LEN(12), .BRAM_ADDR_LEN(10))
 DataFeeder(
 
     .clk_i(clk),
     .rst_i(rst),
 
-// from & to aquila
+    // from & to aquila
     .S_DEVICE_strobe_i(dev_strobe & dsa_sel),
     .S_DEVICE_addr_i(dev_addr[13:2]),
     .S_DEVICE_rw_i(dev_we),
@@ -550,20 +551,18 @@ DataFeeder(
     .S_DEVICE_ready_o(dsa_ready),
     .S_DEVICE_data_o(dsa_dout),
 
-// to floating point IP
+    // to floating point IP
     .a_valid(a_valid),
     .a_data(a_data),
     .a_ready(a_ready),
-
     .b_valid(b_valid),
     .b_data(b_data),
     .b_ready(b_ready),
-
     .c_valid(c_valid),
     .c_data(c_data),
     .c_ready(c_ready),
 
-// from floating point IP
+    // from floating point IP
     .r_valid(r_valid),
     .r_data_i(r_data),
     .r_ready(r_ready)
@@ -592,59 +591,3 @@ floating_point_0 FP(
 );
 
 endmodule
-
-
-/*
-wire test_strobe_i;
-wire [11:0] test_addr_i;
-wire test_ready;
-assign test_strobe_i = dev_strobe & dsa_sel;
-assign test_addr_i = dev_addr[13:2];
-assign test_ready = dsa_ready;
-*/
-
-// testing floating point IP
-/*
-(* mark_debug="true" *)wire [XLEN-1 : 0]       FP_tdata;
-(* mark_debug="true" *)wire                    FP_tvalid;
-(* mark_debug="true" *)reg [XLEN-1 : 0]        a_tdata;
-(* mark_debug="true" *)reg [XLEN-1 : 0]        b_tdata;
-(* mark_debug="true" *)reg                     FP_valid_i;
-(* mark_debug="true" *)reg [XLEN*2-1 : 0]            counter;
-
-reg [XLEN-1 : 0]    a_testdata [1:0];
-reg [XLEN-1 : 0]    b_testdata [1:0];
-
-initial begin
-    a_testdata[0] = 32'hC0D33333;
-    a_testdata[1] = 32'h4059999a; //3.4
-    b_testdata[0] = 32'h410CCCCC;
-    b_testdata[1] = 32'h3f99999a; //1.2
-end
-
-always@(posedge clk)
-begin
-    if(rst) counter = 0;
-    else counter = counter + 1;
-end
-
-
-
-always@(posedge clk)
-begin
-    if(rst)
-    begin
-        FP_valid_i <= 1'b0;
-        a_tdata <= 32'd0;
-        b_tdata <= 32'd0;
-    end
-    else 
-    begin
-        if(counter == 1000000000) FP_valid_i <= 1'b1;
-        if(counter == 1000000040) FP_valid_i <= 1'b0;
-        if(counter == 1000000042) FP_valid_i <= 1'b1;
-        a_tdata <= a_testdata[counter[0]];
-        b_tdata <= b_testdata[counter[0]];
-    end
-end
-*/

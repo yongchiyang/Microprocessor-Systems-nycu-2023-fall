@@ -6,12 +6,11 @@ module data_feeder #( parameter XLEN = 32, parameter BUF_ADDR_LEN = 12, paramete
     input                           clk_i,
     input                           rst_i,
 
-    // from aquila :
-    // write to counter register
-    // write to trigger register
-    // read from ready_flag, write 0 to ready flag
-    // read from result register
-    // write vector and weight to sram
+    // from aquila
+    // aquila : write to counter register
+    // aquila : read from ready_flag, write 0 to ready flag
+    // aquila : read from result register
+    // aquila : write vector and weight to sram
     input                           S_DEVICE_strobe_i, 
     input [BUF_ADDR_LEN-1 : 0]      S_DEVICE_addr_i,
     input                           S_DEVICE_rw_i,
@@ -48,7 +47,7 @@ wire [XLEN-1 : 0]       df_o;
 reg [XLEN-1 : 0]        data_ready;          // 0xC4000000
 reg [XLEN-1 : 0]        data_feeder_counter; // 0xC4000004
 (* mark_debug="true" *) reg [XLEN-1 : 0]        dsa_result;          // 0xC4000008
-(* mark_debug="true" *) reg [XLEN-1 : 0]        dsa_trigger;         // 0xC400000C
+(* mark_debug="true" *)reg [XLEN-1 : 0]        dsa_trigger;         // 0xC400000C
 reg [XLEN-1 : 0]        dsa_trigger_r;
 (* mark_debug="true" *) reg [XLEN-1 : 0]        df_count_a;
 (* mark_debug="true" *) reg [XLEN-1 : 0]        df_count_b;
@@ -69,8 +68,12 @@ wire [2:0]                  bram_sel;
 // =========================================
 //  FP IP signals 
 // =========================================
+reg [XLEN-1 : 0] a_data_r;
+reg [XLEN-1 : 0] b_data_r;
+reg [XLEN-1 : 0] c_data_r;
 (* mark_debug="true" *) reg a_valid_r;
 (* mark_debug="true" *) reg b_valid_r;
+(* mark_debug="true" *) reg c_valid_r;
 
 assign df_ready_sel = (S_DEVICE_addr_i[1:0] == 2'b00);
 assign df_count_sel = (S_DEVICE_addr_i[1:0] == 2'b01);
@@ -98,10 +101,10 @@ assign bram_o = (& S_DEVICE_addr_i[11:10]) ? weight_buffer_o[1] : (S_DEVICE_addr
 
 assign a_valid = a_valid_r;
 assign b_valid = b_valid_r;
-assign c_valid = (r_valid && (df_count_c < data_feeder_counter - 1)) || (dsa_trigger && (!dsa_trigger_r));
-assign a_data = vector_buffer_o;
-assign b_data = dsa_trigger[0] ? weight_buffer_o[0] : weight_buffer_o[1];
-assign c_data = (dsa_trigger_r) ? r_data_i : 32'h00000000;
+assign c_valid = c_valid_r;
+assign a_data = a_data_r;
+assign b_data = b_data_r;
+assign c_data = c_data_r;
 assign r_ready = (|dsa_trigger);
 
 
@@ -171,7 +174,7 @@ always@(posedge clk_i)
 begin
     if(rst_i | !(dsa_trigger)) 
         df_count_a <= 0;
-    else if((df_count_a < data_feeder_counter) & a_ready & a_valid) 
+    else if(dsa_trigger && (df_count_a < data_feeder_counter) && a_ready && a_valid) 
         df_count_a = df_count_a + 1;
 end
 
@@ -179,7 +182,7 @@ always@(posedge clk_i)
 begin
     if(rst_i | !(dsa_trigger)) 
         df_count_b <= 0;
-    else if((df_count_b < data_feeder_counter) & b_ready & b_valid) 
+    else if(dsa_trigger && (df_count_b < data_feeder_counter) && b_ready && b_valid) 
         df_count_b = df_count_b + 1;
 end
 
@@ -187,7 +190,7 @@ always@(posedge clk_i)
 begin
     if(rst_i | !(dsa_trigger)) 
         df_count_c <= 0;
-    else if((df_count_c < data_feeder_counter) & r_valid) 
+    else if(dsa_trigger && (df_count_c < data_feeder_counter) && r_valid) 
         df_count_c = df_count_c + 1;
 end
 
@@ -195,7 +198,7 @@ always@(posedge clk_i)
 begin
     if(rst_i) 
         a_valid_r <= 0;
-    else if(df_count_a == (data_feeder_counter - 1) && a_ready)
+    else if(a_ready & a_valid_r)
         a_valid_r <= 1'b0;
     else if((dsa_trigger) && (df_count_a != data_feeder_counter))
         a_valid_r = 1;
@@ -207,12 +210,46 @@ always@(posedge clk_i)
 begin
     if(rst_i) 
         b_valid_r <= 1'b0;
-    else if(df_count_b == (data_feeder_counter - 1) && b_ready)
+    else if(b_valid_r && b_ready)
         b_valid_r <= 1'b0;
     else if((dsa_trigger) && (df_count_b != data_feeder_counter))
         b_valid_r <= 1'b1;
     else
         b_valid_r <= b_valid_r;
+end
+
+always@(posedge clk_i) 
+begin
+    if(rst_i)
+        c_valid_r <= 1'b0;
+    else if(dsa_trigger && (!dsa_trigger_r)) 
+        c_valid_r <= 1'b1;
+    else if(r_valid && (df_count_c < data_feeder_counter - 1)) 
+        c_valid_r <= 1'b1;
+    else
+        c_valid_r = 1'b0;
+end
+
+
+always@(posedge clk_i)
+begin
+    a_data_r = vector_buffer_o;
+    if(dsa_trigger[0]) // dsa_trigger = 1
+        b_data_r = weight_buffer_o[0];
+    else
+        b_data_r = weight_buffer_o[1];
+end
+
+always@(posedge clk_i)
+begin
+    if(rst_i) 
+        c_data_r <= 32'h0;
+    else if((!dsa_trigger_r)) 
+        c_data_r <= 32'h0;
+    else if((df_count_c <= data_feeder_counter) && (r_valid)) 
+        c_data_r <= r_data_i;
+    else 
+        c_data_r <= c_data_r;
 end
 
 
@@ -256,3 +293,78 @@ Weight_SRAM_BE2(
 );
 
 endmodule
+
+//assign bram_we_sel[0] = (S_DEVICE_rw_i & S_DEVICE_addr_i[10] & ~S_DEVICE_addr_i[11]);
+//assign bram_we_sel[1] = (S_DEVICE_rw_i & S_DEVICE_addr_i[11] & ~S_DEVICE_addr_i[10]);
+//assign bram_we_sel[2] = (S_DEVICE_rw_i & S_DEVICE_addr_i[10] & S_DEVICE_addr_i[11]); 
+
+// work
+/*
+always@(posedge clk_i)
+begin
+    if(rst_i) 
+        a_valid_r <= 0;
+    else if(a_ready & a_valid_r)
+        a_valid_r <= 1'b0;
+    else if((dsa_trigger) && (df_count_a != data_feeder_counter))
+        a_valid_r = 1;
+    else 
+        a_valid_r <= a_valid_r;
+end
+
+always@(posedge clk_i)
+begin
+    if(rst_i) 
+        b_valid_r <= 1'b0;
+    else if(b_valid_r && b_ready)
+        b_valid_r <= 1'b0;
+    else if((dsa_trigger) && (df_count_b != data_feeder_counter))
+        b_valid_r <= 1'b1;
+    else
+        b_valid_r <= b_valid_r;
+end
+*/
+
+
+/*
+always@(posedge clk_i) 
+begin
+    if(rst_i) 
+        c_valid_r <= 0;
+    else if(dsa_trigger && !dsa_trigger_r) 
+        c_valid_r <= 1;
+    else if(dsa_trigger && df_count_c == data_feeder_counter) 
+        c_valid_r <= 0;
+    else 
+        c_valid_r = r_valid;
+end
+*/
+
+//assign a_valid = dsa_trigger_r & (df_count_a != data_feeder_counter);
+//assign b_valid = dsa_trigger_r & (df_count_b != data_feeder_counter);
+
+/*
+always@(posedge clk_i)
+begin
+    if(rst_i) 
+        a_valid_r <= 0;
+    else if(df_count_a == (data_feeder_counter - 1) && a_ready)
+        a_valid_r <= 1'b0;
+    else if((dsa_trigger) && (df_count_a != data_feeder_counter))
+        a_valid_r = 1;
+    else 
+        a_valid_r <= a_valid_r;
+end
+
+always@(posedge clk_i)
+begin
+    if(rst_i) 
+        b_valid_r <= 1'b0;
+    else if(df_count_b == (data_feeder_counter - 1) && b_ready)
+        b_valid_r <= 1'b0;
+    else if((dsa_trigger) && (df_count_b != data_feeder_counter))
+        b_valid_r <= 1'b1;
+    else
+        b_valid_r <= b_valid_r;
+end
+*/
