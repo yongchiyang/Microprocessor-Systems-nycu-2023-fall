@@ -529,7 +529,7 @@ mig_7series_0 MIG(
 // floating point IP signals
 // ---------------------------
 (* mark_debug="true" *) wire a_valid, b_valid, c_valid, r_valid;
-(* mark_debug="true" *) wire a_ready, b_ready, c_ready, r_ready;
+//(* mark_debug="true" *) wire a_ready, b_ready, c_ready, r_ready;
 (* mark_debug="true" *) wire [XLEN-1 : 0] a_data;
 (* mark_debug="true" *) wire [XLEN-1 : 0] b_data;
 (* mark_debug="true" *) wire [XLEN-1 : 0] c_data;
@@ -554,18 +554,18 @@ DataFeeder(
     // to floating point IP
     .a_valid(a_valid),
     .a_data(a_data),
-    .a_ready(a_ready),
+    //.a_ready(a_ready),
     .b_valid(b_valid),
     .b_data(b_data),
-    .b_ready(b_ready),
+    //.b_ready(b_ready),
     .c_valid(c_valid),
     .c_data(c_data),
-    .c_ready(c_ready),
+    //.c_ready(c_ready),
 
     // from floating point IP
     .r_valid(r_valid),
-    .r_data_i(r_data),
-    .r_ready(r_ready)
+    .r_data_i(r_data)
+    //.r_ready(r_ready)
 );
 
 
@@ -575,19 +575,19 @@ floating_point_0 FP(
 
     .s_axis_a_tdata(a_data),
     .s_axis_a_tvalid(a_valid),
-    .s_axis_a_tready(a_ready),
+    //.s_axis_a_tready(a_ready),
 
     .s_axis_b_tdata(b_data),
     .s_axis_b_tvalid(b_valid),
-    .s_axis_b_tready(b_ready),
+    //.s_axis_b_tready(b_ready),
 
     .s_axis_c_tdata(c_data),
     .s_axis_c_tvalid(c_valid),
-    .s_axis_c_tready(c_ready),
+    //.s_axis_c_tready(c_ready),
 
     .m_axis_result_tdata(r_data),
-    .m_axis_result_tvalid(r_valid),
-    .m_axis_result_tready(r_ready)
+    .m_axis_result_tvalid(r_valid)
+    //.m_axis_result_tready(r_ready)
 );
 
 endmodule

@@ -98,7 +98,11 @@ module dcache
     input                     p_is_amo_i,      // AMO request from core.
     input  [4 : 0]            p_amo_type_i,    // Type of AMO from core.
     output                    m_is_amo_o,      // AMO request to D-memory.
-    output reg [4 : 0]        m_amo_type_o     // Type of AMO to D-memory.
+    output reg [4 : 0]        m_amo_type_o,    // Type of AMO to D-memory.
+
+    ////////// Profiler       ///////////////////////////////////////////////////
+    output                    pf_strobe_o,
+    output                    pf_catch_hit_o
 );
 
 //=======================================================
@@ -773,5 +777,9 @@ generate
              );
     end
 endgenerate
+
+assign pf_strobe_o = (S == Analysis) & ~p_is_amo_i;
+assign pf_catch_hit_o = cache_hit;
+
 
 endmodule

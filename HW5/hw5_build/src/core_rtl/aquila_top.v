@@ -235,6 +235,17 @@ assign M_DEVICE_rw_o          = p_d_rw && (data_sel == 2);
 assign M_DEVICE_byte_enable_o = p_d_byte_enable;
 assign M_DEVICE_data_o        = (data_sel == 2)? p_d_core2mem : 32'h0;
 
+
+// profiler wires
+(* mark_debug="true" *) wire pf_data_stall;
+(* mark_debug="true" *) wire pf_exe_stall;
+(* mark_debug="true" *) wire pf_load_store;
+wire [XLEN-1 : 0] pf_exe_pc2mem;
+wire [XLEN-1 : 0] pf_wbk_pc;
+(* mark_debug="true" *) wire pf_strobe;
+(* mark_debug="true" *) wire pf_cachehit;
+
+
 // ----------------------------------------------------------------------------
 //  Aquila processor core
 //
@@ -272,7 +283,14 @@ RISCV_CORE0(
     // Interrupt signals
     .ext_irq_i(1'b0),     // no external interrupt (yet)
     .tmr_irq_i(tmr_irq),
-    .sft_irq_i(sft_irq)
+    .sft_irq_i(sft_irq),
+
+    // profiler
+    .pf_data_stall(pf_data_stall),
+    .pf_exe_stall(pf_exe_stall),
+    .pf_load_store(pf_load_store),
+    .pf_exe_pc2mem(pf_exe_pc2mem),
+    .pf_wbk_pc(pf_wbk_pc)
 );
 
 // ----------------------------------------------------------------------------
@@ -416,8 +434,26 @@ D_Cache(
     .m_data_o(m_d_cache2dram),
     .m_strobe_o(m_d_strobe),
     .m_rw_o(m_d_rw),
-    .m_ready_i(m_d_ready)
+    .m_ready_i(m_d_ready),
+
+    .pf_strobe_o(pf_strobe),
+    .pf_catch_hit_o(pf_cachehit)
 );
 `endif
 
+profiler #(.XLEN(XLEN))
+Profiler(
+    .clk_i(clk_i),
+    .rst_i(rst_i),
+
+    .stall_data_i(pf_data_stall),
+    .stall_from_exe_i(pf_exe_stall),
+    .load_store_i(pf_load_store),
+
+    .d_strobe_i(pf_strobe),
+    .d_cache_hit_i(pf_cachehit),
+
+    .exe_pc2mem_i(pf_exe_pc2mem),
+    .wbk_pc_i(pf_wbk_pc)
+);
 endmodule

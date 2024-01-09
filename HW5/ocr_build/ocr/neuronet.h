@@ -27,6 +27,8 @@
 #define DSA_CNT_ADDR        0xC4000004
 #define DSA_RESULT_ADDR     0xC4000008
 #define DSA_TRIGGER_ADDR    0xC400000C
+#define DSA_BASE_ADDR       0xc4000010
+#define DSA_TOP_ADDR        0xc4000014
 #define DSA_BUFF_1          0xC4001000
 #define DSA_BUFF_2          0xC4002000
 #define DSA_BUFF_3          0xC4003000
@@ -55,5 +57,7 @@ float relu(float x);
 
 // DSA
 int  ping_pong_eval(NeuroNet *nn, float *images);
+int  ping_pong_eval_v(NeuroNet *nn, float *images);
 int  one_buffer_eval(NeuroNet *nn, float *images);
-
+// test
+int  mem_cpy_eval(NeuroNet *nn, float *images);

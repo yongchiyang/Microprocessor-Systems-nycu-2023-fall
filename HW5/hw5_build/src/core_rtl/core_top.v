@@ -117,7 +117,13 @@ module core_top #(
     // Interrupt sources.
     input                 ext_irq_i,
     input                 tmr_irq_i,
-    input                 sft_irq_i
+    input                 sft_irq_i,
+
+    output                pf_data_stall,
+    output                pf_exe_stall,
+    output                pf_load_store,
+    output [XLEN-1 : 0]   pf_exe_pc2mem,
+    output [XLEN-1 : 0]   pf_wbk_pc
 );
 
 // ------------------------------
@@ -205,7 +211,7 @@ wire [ 1 : 0]     exe_sys_jump_csr_addr2mem;
 wire              exe_xcpt_valid2mem;
 wire [ 3 : 0]     exe_xcpt_cause2mem;
 wire [XLEN-1 : 0] exe_xcpt_tval2mem;
-wire [XLEN-1 : 0] exe_pc2mem;
+(* mark_debug="true" *) wire [XLEN-1 : 0] exe_pc2mem;
 
 // ------------------------------
 //  Memory stage output signals
@@ -239,7 +245,7 @@ wire [ 1 : 0]     wbk_sys_jump_csr_addr2csr;
 wire              wbk_xcpt_valid2csr;
 wire [ 3 : 0]     wbk_xcpt_cause2csr;
 wire [XLEN-1 : 0] wbk_xcpt_tval2csr;
-wire [XLEN-1 : 0] wbk_pc2csr;
+(* mark_debug="true" *) wire [XLEN-1 : 0] wbk_pc2csr;
 
 // ---------------------------------
 //  Output signals from other units
@@ -392,7 +398,8 @@ always @(*)
 begin
     case (dS)
         d_IDLE:
-            if ((exe_re || exe_we) && !mem_align_exception)
+            //if ((exe_re || exe_we) && !mem_align_exception)
+            if ((exe_re || (exe_we && (data_addr_o[31:24] != 8'hc4))) && !mem_align_exception)
                 dS_nxt = d_WAIT;
             else
                 dS_nxt = d_IDLE;
@@ -966,4 +973,9 @@ CSR(
     .xcpt_tval_i(wbk_xcpt_tval2csr)
 );
 
+assign pf_data_stall = stall_data_fetch;
+assign pf_exe_stall = stall_from_exe;
+assign pf_exe_pc2mem = exe_pc2mem;
+assign pf_wbk_pc = wbk_pc2csr;
+assign pf_load_store = (exe_we | exe_re) & (!stall_pipeline);
 endmodule

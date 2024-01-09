@@ -33,6 +33,8 @@ volatile unsigned int * p_dsa_ready = (unsigned int *) DSA_READY_ADDR;
 volatile unsigned int * p_dsa_cnt = (unsigned int *) DSA_CNT_ADDR;
 volatile float * p_dsa_result = (float *) DSA_RESULT_ADDR;
 volatile unsigned int * p_dsa_trigger = (unsigned int *) DSA_TRIGGER_ADDR;
+volatile unsigned int * p_dsa_base = (unsigned int *) DSA_BASE_ADDR;
+volatile unsigned int * p_dsa_top = (unsigned int *) DSA_TOP_ADDR;
 volatile float * p_dsa_buff_1 = (float *) DSA_BUFF_1;
 volatile float * p_dsa_buff_2 = (float *) DSA_BUFF_2;
 volatile float * p_dsa_buff_3 = (float *) DSA_BUFF_3;
@@ -176,12 +178,14 @@ int ping_pong_eval(NeuroNet *nn, float *images)
     int buff_index;
     
     // Forward computations - Ping Pong Buffer
+    *p_dsa_base = 0;
     neuron_idx = nn->n_neurons[0];
     for (layer_idx = 1; layer_idx < nn->total_layers; layer_idx++)
     {
         buff_index = 1;
         idx = nn->n_neurons[layer_idx];
         *p_dsa_cnt = nn->n_neurons[layer_idx-1];
+        *p_dsa_top = nn->n_neurons[layer_idx-1];
 
         p_neuron = nn->previous_neurons[neuron_idx];
         if(layer_idx == 1) dsa_cpy((void *) p_dsa_buff_1, (void *) images, nn->n_neurons[layer_idx-1]);
@@ -235,6 +239,7 @@ int one_buffer_eval(NeuroNet *nn, float *images)
     float *p_weight;
     int idx, layer_idx, neuron_idx, max_idx;
 
+    *p_dsa_base = 0;
     // Forward computations - one buffer
     neuron_idx = nn->n_neurons[0];
     for (layer_idx = 1; layer_idx < nn->total_layers; layer_idx++)
@@ -253,6 +258,7 @@ int one_buffer_eval(NeuroNet *nn, float *images)
             
             
             *p_dsa_cnt = nn->n_neurons[layer_idx-1];
+            *p_dsa_top = nn->n_neurons[layer_idx-1];
             *p_dsa_trigger = 2;
 
             while(!(*p_dsa_ready));
@@ -276,6 +282,94 @@ int one_buffer_eval(NeuroNet *nn, float *images)
     }
 
     return max_idx;
+}
+
+int ping_pong_eval_v(NeuroNet *nn, float *images)
+{
+    float inner_product, max;
+    float *p_weight;
+    int idx, layer_idx, neuron_idx, max_idx;
+    int buff_index, base, top;
+    base = 0;
+    neuron_idx = nn->n_neurons[0];
+    top = neuron_idx;
+
+    dsa_cpy((void *) p_dsa_buff_1, (void *) images, nn->n_neurons[0]);
+
+    // Forward computations - Ping Pong Buffer, store next vector in buffer
+    for (layer_idx = 1; layer_idx < nn->total_layers; layer_idx++)
+    {
+        buff_index = 1;
+        idx = nn->n_neurons[layer_idx];
+        *p_dsa_cnt = nn->n_neurons[layer_idx-1];
+        *p_dsa_base = base;
+        *p_dsa_top = top;
+        base += nn->n_neurons[layer_idx-1];;
+        top += idx;
+        
+        p_weight = nn->forward_weights[neuron_idx];
+        dsa_cpy((void *) p_dsa_weight[buff_index-1], (void *) p_weight, nn->n_neurons[layer_idx-1]);
+
+        while(idx--)
+        {
+            *p_dsa_trigger = buff_index; // 1 or 2
+            buff_index ^= 0x00000003; // 1 -> 2, 2 - > 1
+
+            inner_product = *(p_weight + nn->n_neurons[layer_idx-1]); // store bias first
+            
+            if(idx)
+            {
+                p_weight = nn->forward_weights[neuron_idx+1];
+                dsa_cpy((void *) p_dsa_weight[buff_index-1], (void *) p_weight, nn->n_neurons[layer_idx-1]);
+            }
+            
+            while(!(*p_dsa_ready));
+            *p_dsa_ready = 0;
+            inner_product += *p_dsa_result;
+
+            *(p_dsa_buff_1 + neuron_idx) = relu(inner_product);
+            neuron_idx++;
+        }
+    }
+
+    // Return the index to the maximal neuron value of the output layer.
+    max = -1.0, max_idx = 0;
+    for (idx = 0; idx < nn->n_neurons[nn->total_layers-1]; idx++)
+    {
+        if (max < *(p_dsa_buff_1+base+idx))
+        {
+            max_idx = idx;
+            max = *(p_dsa_buff_1+base+idx);
+        }
+    }
+
+    return max_idx;
+}
+
+int mem_cpy_eval(NeuroNet *nn, float *images)
+{
+    float *p_neuron;
+    float *p_weight;
+    int idx, layer_idx, neuron_idx;
+
+    neuron_idx = nn->n_neurons[0];
+    for (layer_idx = 1; layer_idx < nn->total_layers; layer_idx++)
+    {
+        p_neuron = nn->previous_neurons[neuron_idx];
+        if(layer_idx == 1) dsa_cpy((void *) p_dsa_buff_1, (void *) images, nn->n_neurons[layer_idx-1]);
+        else dsa_cpy((void *) p_dsa_buff_1, (void *) p_neuron, nn->n_neurons[layer_idx-1]);
+        for (idx = 0; idx < nn->n_neurons[layer_idx]; idx++, neuron_idx++)
+        {
+            // 'p_weight' points to the first forward weight of a layer.
+            p_weight = nn->forward_weights[neuron_idx];            
+    
+            dsa_cpy((void *) p_dsa_buff_3, (void *) p_weight, nn->n_neurons[layer_idx-1]);
+            
+            nn->neurons[neuron_idx] = *(p_weight);
+        }
+    }
+
+    return 0;
 }
 
 float relu(float x)

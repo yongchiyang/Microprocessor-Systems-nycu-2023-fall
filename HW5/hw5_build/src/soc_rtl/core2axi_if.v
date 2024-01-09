@@ -112,9 +112,9 @@ end
 always @(posedge clk_i)
 begin
     if (m_axi_rvalid && m_axi_rready) // The read_done should be associated
-    read_done <= 1;                   // with a rready response.
-else
-    read_done <= 0;
+        read_done <= 1;               // with a rready response.
+    else
+        read_done <= 0;
 end
 
 // Flag any write errors.

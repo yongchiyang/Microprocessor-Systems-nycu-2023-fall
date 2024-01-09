@@ -57,7 +57,7 @@ int main()
     tick = clock();
     for (int idx = 0; idx < n_images; idx++)
     {
-        class_id = neuronet_eval(&nn, images[idx]);
+        class_id = ping_pong_eval_v(&nn, images[idx]);
         if ((int) labels[idx] == class_id) ++correct_count;
     }
     tick = (clock() - tick)/ticks_per_msec;

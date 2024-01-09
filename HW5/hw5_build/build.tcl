@@ -74,8 +74,9 @@ set files [list \
  [file normalize "$origin_dir/src/soc_rtl/mig_7series_sim.v" ]\
  [file normalize "$origin_dir/src/soc_rtl/cdc_sync.v" ]\
  [file normalize "$origin_dir/src/soc_rtl/mem_arbiter.v" ]\
+ [file normalize "$origin_dir/src/core_rtl/sram_df.v" ]\
+ [file normalize "$origin_dir/src/core_rtl/profiler.v" ]\
  [file normalize "$origin_dir/src/soc_rtl/data_feeder.v" ]\
- [file normalize "$origin_dir/src/soc_rtl/sram_df.v" ]\
  [file normalize "$origin_dir/src/mem/uartboot.mem" ]\
 ]
 set imported_files [import_files -fileset sources_1 $files]
@@ -180,7 +181,8 @@ create_ip -name floating_point -vendor xilinx.com -library ip -module_name float
 set_property -dict [ list \
    CONFIG.OPERATION_TYPE {FMA} \
    CONFIG.ADD_SUB_VALUE {Add} \
-   CONFIG.Flow_Control {Blocking} \
+   CONFIG.Flow_Control {NonBlocking} \
+   CONFIG.Maximum_Latency {False} \
    CONFIG.C_Latency {3} ] [get_ips floating_point_0]
 generate_target all [get_files ${proj_name}/${proj_name}.srcs/sources_1/ip/floating_point_0/floating_point_0.xci]
 

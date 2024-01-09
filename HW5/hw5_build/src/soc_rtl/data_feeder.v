@@ -25,18 +25,18 @@ module data_feeder #( parameter XLEN = 32, parameter BUF_ADDR_LEN = 12, paramete
     // to floating point IP
     output                          a_valid,
     output [XLEN-1 : 0]             a_data,
-    input                           a_ready,
+    //input                           a_ready,
     output                          b_valid,
     output [XLEN-1 : 0]             b_data,
-    input                           b_ready,
+    //input                           b_ready,
     output                          c_valid,
     output [XLEN-1 : 0]             c_data,
-    input                           c_ready,
+    //input                           c_ready,
 
     // from floating point IP
     input                           r_valid,
-    input [XLEN-1 : 0]              r_data_i,
-    output                          r_ready
+    input [XLEN-1 : 0]              r_data_i
+    //output                          r_ready
 );
 
 
@@ -49,11 +49,15 @@ reg [XLEN-1 : 0]        data_ready;          // 0xC4000000
 reg [XLEN-1 : 0]        data_feeder_counter; // 0xC4000004
 (* mark_debug="true" *) reg [XLEN-1 : 0]        dsa_result;          // 0xC4000008
 (* mark_debug="true" *) reg [XLEN-1 : 0]        dsa_trigger;         // 0xC400000C
+(* mark_debug="true" *) reg [XLEN-1 : 0]        dsa_vec_base;         // 0xC4000010
+(* mark_debug="true" *) reg [XLEN-1 : 0]        dsa_vec_top;         // 0xC4000014
+
 reg [XLEN-1 : 0]        dsa_trigger_r;
 (* mark_debug="true" *) reg [XLEN-1 : 0]        df_count_a;
 (* mark_debug="true" *) reg [XLEN-1 : 0]        df_count_b;
 (* mark_debug="true" *) reg [XLEN-1 : 0]        df_count_c;
 wire df_ready_sel, df_count_sel, df_trigger_sel;
+wire df_vec_base_sel, df_vec_top_sel;
 
 // =========================================
 //  bram control signals 
@@ -64,24 +68,29 @@ wire [2:0]                  bram_sel;
 (* mark_debug="true" *) wire [BRAM_ADDR_LEN-1 : 0]  bram_addr_b [1:0];
 (* mark_debug="true" *) wire [XLEN-1 : 0]           vector_buffer_o;
 (* mark_debug="true" *) wire [XLEN-1 : 0]           weight_buffer_o [1:0];
+(* mark_debug="true" *) wire [XLEN-1 : 0]           b_weight;
 (* mark_debug="true" *) wire [XLEN-1 : 0]           bram_o;
+(* mark_debug="true" *) reg [XLEN-1 : 0]            R1, R2, R3;
 
-// =========================================
-//  FP IP signals 
-// =========================================
-(* mark_debug="true" *) reg a_valid_r;
-(* mark_debug="true" *) reg b_valid_r;
-
-assign df_ready_sel = (S_DEVICE_addr_i[1:0] == 2'b00);
-assign df_count_sel = (S_DEVICE_addr_i[1:0] == 2'b01);
-assign df_trigger_sel = (S_DEVICE_addr_i[1:0] == 2'b11);
+(* mark_debug="true" *) reg [XLEN-1 : 0] compute_lat;
 
 
 // =========================================
 //  data feeder read/write operation 
 // =========================================
+assign df_ready_sel = (S_DEVICE_addr_i[2:0] == 3'b000);
+assign df_count_sel = (S_DEVICE_addr_i[2:0] == 3'b001);
+assign df_trigger_sel = (S_DEVICE_addr_i[2:0] == 3'b011);
+assign df_vec_base_sel = (S_DEVICE_addr_i[2:0] == 3'b100);
+assign df_vec_top_sel = (S_DEVICE_addr_i[2:0] == 3'b101);
+
 assign df_en = (S_DEVICE_strobe_i & (!S_DEVICE_addr_i[11:10]));
-assign df_o = df_ready_sel ? data_ready : df_count_sel ? data_feeder_counter : df_trigger_sel ? dsa_trigger : dsa_result;
+assign df_o = df_ready_sel ? data_ready : 
+              df_count_sel ? data_feeder_counter : 
+              df_trigger_sel ? dsa_trigger : 
+              df_vec_base_sel ? dsa_vec_base :
+              df_vec_top_sel ? dsa_vec_top : dsa_result;
+
 assign S_DEVICE_data_o = (!S_DEVICE_addr_i[11:10]) ? df_o : bram_o;
 
 
@@ -96,13 +105,15 @@ assign bram_addr_b[0] = (dsa_trigger_r[0] | dsa_trigger[0]) ? df_count_b[BRAM_AD
 assign bram_addr_b[1] = (dsa_trigger_r[1] | dsa_trigger[1]) ? df_count_b[BRAM_ADDR_LEN-1:0] : S_DEVICE_addr_i[BRAM_ADDR_LEN-1:0];
 assign bram_o = (& S_DEVICE_addr_i[11:10]) ? weight_buffer_o[1] : (S_DEVICE_addr_i[10]) ? vector_buffer_o : weight_buffer_o[0];
 
-assign a_valid = a_valid_r;
-assign b_valid = b_valid_r;
-assign c_valid = (r_valid && (df_count_c < data_feeder_counter - 1)) || (dsa_trigger && (!dsa_trigger_r));
-assign a_data = vector_buffer_o;
-assign b_data = dsa_trigger[0] ? weight_buffer_o[0] : weight_buffer_o[1];
-assign c_data = (dsa_trigger_r) ? r_data_i : 32'h00000000;
-assign r_ready = (|dsa_trigger);
+assign a_valid = 1'b1;
+assign b_valid = 1'b1;
+assign c_valid = 1'b1;
+assign a_data = (df_count_a == dsa_vec_top) ? 32'h3f800000 : vector_buffer_o;
+assign b_weight = dsa_trigger[0] ? weight_buffer_o[0] : weight_buffer_o[1];
+assign b_data = (df_count_b < data_feeder_counter) ? b_weight :
+                (df_count_b == data_feeder_counter + 1) ? R1 : 
+                (df_count_b == data_feeder_counter + 4) ? R3 : 32'h00000000;
+assign c_data = (dsa_trigger_r && dsa_trigger && df_count_c > 2) ? r_data_i : 32'h00000000;
 
 
 // =========================================
@@ -126,6 +137,8 @@ begin
         data_ready <= 0;
         data_feeder_counter <= 32'hFFFFFFFF; // different from df_counter, so ready flag will be zero
         dsa_trigger <= 0;
+        dsa_vec_base <= 0;
+        dsa_vec_top <= 32'hFFFFFFFF;
     end
     else if(df_en && S_DEVICE_rw_i)
     begin
@@ -135,21 +148,30 @@ begin
             data_feeder_counter <= S_DEVICE_data_i;
         else if(df_trigger_sel) 
             dsa_trigger <= S_DEVICE_data_i;
+        else if(df_vec_base_sel)
+            dsa_vec_base <= S_DEVICE_data_i;
+        else if(df_vec_top_sel)
+            dsa_vec_top <= S_DEVICE_data_i;
     end
-    else if(df_count_c == data_feeder_counter) 
+    else if(df_count_c == (data_feeder_counter+7)) 
     begin 
         data_ready <= 32'h00000001;
         dsa_trigger <= 32'h00000000;
     end
-    else data_ready <= data_ready;
+    else 
+    begin
+        data_ready <= data_ready;
+        dsa_vec_base <= dsa_vec_base;
+        dsa_vec_top <= dsa_vec_top;
+    end
 end
 
 always@(posedge clk_i)
 begin
     if(rst_i) 
         dsa_result <= 0;
-    else if(df_count_c == data_feeder_counter) 
-        dsa_result <= c_data;
+    else if(df_count_c == (data_feeder_counter+7)) 
+        dsa_result <= r_data_i;
     else 
         dsa_result <= dsa_result;
 end
@@ -170,8 +192,8 @@ end
 always@(posedge clk_i)
 begin
     if(rst_i | !(dsa_trigger)) 
-        df_count_a <= 0;
-    else if((df_count_a < data_feeder_counter) & a_ready & a_valid) 
+        df_count_a <= dsa_vec_base;
+    else if(df_count_a < dsa_vec_top)
         df_count_a = df_count_a + 1;
 end
 
@@ -179,7 +201,7 @@ always@(posedge clk_i)
 begin
     if(rst_i | !(dsa_trigger)) 
         df_count_b <= 0;
-    else if((df_count_b < data_feeder_counter) & b_ready & b_valid) 
+    else if(df_count_b < (data_feeder_counter + 8))
         df_count_b = df_count_b + 1;
 end
 
@@ -187,32 +209,36 @@ always@(posedge clk_i)
 begin
     if(rst_i | !(dsa_trigger)) 
         df_count_c <= 0;
-    else if((df_count_c < data_feeder_counter) & r_valid) 
+    else if(df_count_c < (data_feeder_counter + 8))
         df_count_c = df_count_c + 1;
 end
 
 always@(posedge clk_i)
 begin
-    if(rst_i) 
-        a_valid_r <= 0;
-    else if(df_count_a == (data_feeder_counter - 1) && a_ready)
-        a_valid_r <= 1'b0;
-    else if((dsa_trigger) && (df_count_a != data_feeder_counter))
-        a_valid_r = 1;
-    else 
-        a_valid_r <= a_valid_r;
+    if(rst_i)
+    begin
+        R1 <= 32'h0;
+        R2 <= 32'h0;
+        R3 <= 32'h0;
+    end
+    else
+    begin
+        if(df_count_c == (data_feeder_counter)) 
+            R1 <= r_data_i;
+        else if(df_count_c == (data_feeder_counter + 1)) 
+            R2 <= r_data_i;
+        else if(df_count_c == (data_feeder_counter + 2)) 
+            R3 <= r_data_i;
+    end
 end
 
+// computation latency
 always@(posedge clk_i)
 begin
-    if(rst_i) 
-        b_valid_r <= 1'b0;
-    else if(df_count_b == (data_feeder_counter - 1) && b_ready)
-        b_valid_r <= 1'b0;
-    else if((dsa_trigger) && (df_count_b != data_feeder_counter))
-        b_valid_r <= 1'b1;
-    else
-        b_valid_r <= b_valid_r;
+    if(rst_i)
+        compute_lat <= 32'h0;
+    else if(dsa_trigger)
+        compute_lat <= compute_lat + 1;
 end
 
 
